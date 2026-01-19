@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/db";
-import { User, $Enums } from "../generated/prisma";
+import { User, $Enums } from "@prisma/client";
 
 interface AuthRequest extends Request {
   user?: Omit<User, "password">;

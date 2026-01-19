@@ -1,5 +1,5 @@
 // import { User } from "@prisma/client";
-import { User } from "../generated/prisma/client";
+import { User } from "@prisma/client/client";
 
 
 declare global {

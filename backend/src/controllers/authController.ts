@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/db";
 import { hashPassword, comparePassword, createToken } from "../utils/auth";
-import { User } from "../generated/prisma";
+import { User } from "@prisma/client";
 
 interface AuthRequest extends Request {
   user?: Omit<User, "password">;

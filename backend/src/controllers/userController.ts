@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/db";
-import { User } from "../generated/prisma";
+import { User } from "@prisma/client";
 import { hashPassword, comparePassword } from "../utils/auth";
 
 interface AuthRequest extends Request {
