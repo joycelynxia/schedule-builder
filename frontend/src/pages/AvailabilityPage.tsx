@@ -33,8 +33,10 @@ function AvailabilityPage() {
     const token = localStorage.getItem("token");
     if (!token) return;
 
+      const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
     // Fetch current user and then their rules
-    fetch("http://localhost:4000/auth/me", {
+    fetch(`${API_BASE}/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())

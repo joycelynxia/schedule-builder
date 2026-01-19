@@ -10,7 +10,9 @@ function LoginPage() {
     e.preventDefault();
 
     try {
-      const res = await fetch("http://localhost:4000/auth/login", {
+        const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
+      const res = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
