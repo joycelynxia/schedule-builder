@@ -1,7 +1,7 @@
 {
   "builds": [
     {
-      "src": "backend/src/server.ts",
+      "src": "backend/package.json",
       "use": "@vercel/node"
     },
     {
@@ -15,11 +15,11 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "backend/src/server.ts"
+      "dest": "backend/dist/server.ts"
     },
     {
       "src": "/(.*)",
-      "dest": "frontend/dist/index.html"
+      "dest": "frontend/$1"
     }
   ]
 }
