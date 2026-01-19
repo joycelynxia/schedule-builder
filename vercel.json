@@ -1,10 +1,6 @@
 {
   "builds": [
     {
-      "src": "backend/package.json",
-      "use": "@vercel/node"
-    },
-    {
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
@@ -12,22 +8,13 @@
       }
     }
   ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "backend/dist/server.ts"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "frontend/$1"
-    }
-  ],
   "rewrites": [
     {
       "source": "/api/:path*",
       "destination": "https://schedulr-twoi.onrender.com/api/:path*"
     },
-    {"source": "/(.*)",
+    {
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
