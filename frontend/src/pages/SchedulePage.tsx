@@ -15,7 +15,7 @@ import { apiFetch } from "../api";
 function SchedulePage() {
   const [draftShifts, setDraftShifts] = useState<Shift[]>([]);
   const [publishedShifts, setPublishedShifts] = useState<Shift[]>([]);
-  const [isEditing, setIsEditing] = useState<Boolean>(false);
+  // const [isEditing, setIsEditing] = useState<Boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<Boolean>(false);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
@@ -27,7 +27,7 @@ function SchedulePage() {
     userName: string;
     isManager: boolean;
   } | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  // const [loading, setLoading] = useState<boolean>(true);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState<boolean>(false);
   const [selectedShiftIds, setSelectedShiftIds] = useState<Set<string>>(new Set());
 
@@ -53,11 +53,11 @@ function SchedulePage() {
         const published = shifts.filter((s) => s.isPublished);
         setDraftShifts(drafts);
         setPublishedShifts(published);
-        setLoading(false);
+        // setLoading(false);
       })
       .catch((err) => {
         console.error("Error fetching shifts:", err);
-        setLoading(false);
+        // setLoading(false);
       });
   }, []);
 
@@ -125,7 +125,7 @@ function SchedulePage() {
       setPublishedShifts((prev) => [...prev, ...published]);
       setSelectedShiftIds(new Set());
       setIsPublishModalOpen(false);
-      setIsEditing(false);
+      // setIsEditing(false);
     } catch (error: any) {
       console.error("Error publishing shifts:", error);
       alert(error.message || "Failed to publish shifts");
@@ -156,7 +156,7 @@ function SchedulePage() {
       setDraftShifts((prev) => prev.filter((s) => !selectedShiftIds.has(s.id)));
       setSelectedShiftIds(new Set());
       setIsPublishModalOpen(false);
-      setIsEditing(false);
+      // setIsEditing(false);
     } catch (error: any) {
       console.error("Error deleting shifts:", error);
       alert(error.message || "Failed to delete shifts");

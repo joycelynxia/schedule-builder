@@ -1,6 +1,5 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Route, Routes } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
-import EmployeeDashboard from "./pages/AvailabilityPage";
 import SchedulePage from "./pages/SchedulePage";
 import Header from "./components/Navbar";
 import AvailabilityPage from "./pages/AvailabilityPage";

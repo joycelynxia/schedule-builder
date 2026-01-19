@@ -23,7 +23,6 @@ function AvailabilityPage() {
   const [isToolTipOpen, setIsToolTipOpen] = useState<boolean>(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [currentEvent, setCurrentEvent] = useState<Dictionary>({});
-  const [loading, setLoading] = useState<boolean>(true);
   const [editingRule, setEditingRule] = useState<UnavailabilityRule | null>(null);
   const [conflictingRules, setConflictingRules] = useState<UnavailabilityRule[]>([]);
   const [pendingRule, setPendingRule] = useState<UnavailabilityRule | null>(null);
@@ -46,11 +45,9 @@ function AvailabilityPage() {
       .then((r) => r.json())
       .then((rules) => {
         setUnavailabilityRules(rules);
-        setLoading(false);
       })
       .catch((err) => {
         console.error("Error fetching data:", err);
-        setLoading(false);
       });
   }, []);
 

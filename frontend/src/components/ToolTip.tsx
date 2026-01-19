@@ -9,9 +9,6 @@ interface Props {
 }
 
 function ToolTip({ eventInfo, X, Y }: Props) {
-  const printInfo = () => {
-    console.log(eventInfo);
-  };
 
   const formatHours = () => {
     if (eventInfo.end && eventInfo.start) {

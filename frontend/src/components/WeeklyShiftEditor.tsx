@@ -1,8 +1,7 @@
 import { useEffect, useState, useRef } from "react";
-import type { Employee, Shift, UnavailabilityRule, DayOfWeek } from "../types/models";
+import type { Shift, UnavailabilityRule, DayOfWeek } from "../types/models";
 import "../styles/ShiftEditor.css";
-import Select, { type MultiValue } from "react-select";
-import { combineDateAndTime } from "../utils/stringHelper";
+import Select from "react-select";
 import { apiFetch } from "../api";
 
 interface Props {
@@ -30,7 +29,6 @@ interface UserWithAvailability {
 type ShiftStatus = "DRAFT" | "PUBLISHED";
 
 function WeeklyShiftEditor({
-  draftShifts,
   onAddShift,
   onUpdateShift,
   onDeleteShift,
@@ -359,9 +357,9 @@ function WeeklyShiftEditor({
     return shiftDate >= today;
   };
 
-  const shiftDate = editingShift
-    ? editingShift.start.split("T")[0]
-    : date;
+  // const shiftDate = editingShift
+  //   ? editingShift.start.split("T")[0]
+  //   : date;
 
   return (
     <div className="overlay">
