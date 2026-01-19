@@ -26,6 +26,9 @@
     {
       "source": "/api/:path*",
       "destination": "https://schedulr-twoi.onrender.com/api/:path*"
+    },
+    {"source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
