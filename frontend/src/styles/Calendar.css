@@ -1,0 +1,76 @@
+.calendar-container {
+  background-color: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  width: 90vw;
+  max-width: 1400px;
+  display: block;
+  align-items: center;
+  align-self: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
+  transition: var(--transition);
+}
+
+.calendar-container:hover {
+  box-shadow: var(--shadow-xl);
+}
+
+.page-container {
+  margin-top: 80px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+/* FullCalendar text color overrides */
+.calendar-container .fc {
+  color: #1a1a1a;
+}
+
+.calendar-container .fc-daygrid-day-number {
+  color: #1a1a1a;
+}
+
+.calendar-container .fc-col-header-cell {
+  color: #1a1a1a;
+}
+
+.calendar-container .fc-col-header-cell-cushion {
+  color: #1a1a1a;
+}
+
+.calendar-container .fc-daygrid-day-top {
+  color: #1a1a1a;
+}
+
+.calendar-container .fc-event-title {
+  color: #1a1a1a;
+}
+
+.calendar-container .fc-event-title-container {
+  color: #1a1a1a;
+}
+
+.calendar-container .fc-button {
+  color: white;
+}
+
+.calendar-container .fc-today-button {
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .calendar-container {
+    width: 95vw;
+    padding: 16px;
+  }
+  
+  .page-container {
+    padding: 0 10px;
+  }
+}

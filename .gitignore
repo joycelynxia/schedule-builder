@@ -1,0 +1,18 @@
+# dependencies
+node_modules
+.env
+
+# build output
+dist
+build
+
+# logs
+logs
+*.log
+
+# OS files
+.DS_Store
+
+# prisma
+*.db
+.prisma

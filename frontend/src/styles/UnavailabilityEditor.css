@@ -1,0 +1,184 @@
+.availability-modal {
+  background-color: var(--surface);
+  display: flex;
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  flex-direction: column;
+  position: relative;
+  width: 480px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  justify-content: space-between;
+  align-items: stretch;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border-color);
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  flex: 1;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+  border-radius: 4px;
+}
+
+.close-button:hover {
+  color: var(--text-primary);
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.availability-modal label {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.repeat-days {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+
+.days-of-week {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  margin-right: 0;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  height: 36px;
+  width: 36px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-primary);
+  transition: var(--transition);
+  background-color: var(--surface);
+}
+
+.days-of-week:hover {
+  border-color: var(--primary-color);
+  background-color: rgba(124, 92, 240, 0.08);
+  transform: scale(1.1);
+}
+
+.days-of-week.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-buttons {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.form-buttons-right {
+  display: flex;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.cancel {
+  background-color: var(--secondary-color);
+  color: white;
+  font-weight: 500;
+}
+
+.cancel:hover {
+  background-color: #4b5563;
+}
+
+.submit {
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: 500;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+.submit:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.delete-button {
+  background-color: #f44336;
+  color: white;
+  font-weight: 500;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.delete-button:hover {
+  background-color: #d32f2f;
+}
+
+.repeat-freq {
+  display: flex;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.availability-modal label.checkbox {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.availability-modal label.checkbox input {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--primary-color);
+}
