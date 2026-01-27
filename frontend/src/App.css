@@ -1,6 +1,40 @@
 #root {
-  width: 100%;
+  width: 100vw;
   min-height: 100vh;
   margin: 0;
   padding: 0;
+  overflow: hidden;
+}
+
+.app-container {
+  display: flex;
+  min-height: 100vh;
+  width: 100vw;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.main-content {
+  margin-left:20vw;
+  flex: 1;
+  width: 100%;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+  
+  .main-content {
+    margin-left: 0;
+    margin-top: 56px; /* Height of mobile navbar */
+  }
+}
+
+.login-register {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }

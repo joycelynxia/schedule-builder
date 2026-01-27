@@ -8,15 +8,28 @@ interface AuthRequest extends Request {
 }
 
 export const getUsers = async (req: Request, res: Response) => {
-  const users = await prisma.user.findMany({
-    select: {
-      id:true, 
-      userName: true,
-      // isManager: true,
-    },
-  });
-  res.json(users)
-}
+  try {
+    const companyId = req.params.companyId as string;
+    if (!companyId) {
+      return res.status(400).json({ error: "Company ID is required" });
+    }
+    const users = await prisma.user.findMany({
+      where: {
+        companyId,
+      },
+      select: {
+        id: true,
+        userName: true,
+        email: true,
+        // isManager: true,
+      },
+    });
+    res.json(users);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+};
 
 export const updateEmail = async (req: AuthRequest, res: Response) => {
   try {
@@ -69,8 +82,8 @@ export const updatePassword = async (req: AuthRequest, res: Response) => {
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
-      return res.status(400).json({ 
-        error: "Current password and new password are required" 
+      return res.status(400).json({
+        error: "Current password and new password are required",
       });
     }
 

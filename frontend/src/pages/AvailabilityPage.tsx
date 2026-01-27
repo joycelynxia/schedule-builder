@@ -6,11 +6,16 @@ import AvailabilityEditor from "../components/AvailabilityEditor";
 import ConflictDialog from "../components/ConflictDialog";
 import { useState, useMemo, useEffect } from "react";
 import type { UnavailabilityRule, DayOfWeek } from "../types/models";
-import type { EventHoveringArg, EventInput, EventClickArg } from "@fullcalendar/core"
+import type {
+  EventHoveringArg,
+  EventInput,
+  EventClickArg,
+} from "@fullcalendar/core";
 import { combineDateAndTime, toDateOnly } from "../utils/stringHelper";
 import ToolTip from "../components/ToolTip";
 import type { Dictionary } from "@fullcalendar/core/internal";
 import { apiFetch } from "../api";
+import { useUser } from "../context/UserContext";
 
 function AvailabilityPage() {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -23,35 +28,45 @@ function AvailabilityPage() {
   const [isToolTipOpen, setIsToolTipOpen] = useState<boolean>(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [currentEvent, setCurrentEvent] = useState<Dictionary>({});
-  const [editingRule, setEditingRule] = useState<UnavailabilityRule | null>(null);
-  const [conflictingRules, setConflictingRules] = useState<UnavailabilityRule[]>([]);
-  const [pendingRule, setPendingRule] = useState<UnavailabilityRule | null>(null);
+  const [editingRule, setEditingRule] = useState<UnavailabilityRule | null>(
+    null,
+  );
+  const [conflictingRules, setConflictingRules] = useState<
+    UnavailabilityRule[]
+  >([]);
+  const [pendingRule, setPendingRule] = useState<UnavailabilityRule | null>(
+    null,
+  );
   const [showConflictDialog, setShowConflictDialog] = useState<boolean>(false);
+  const [rulesLoading, setRulesLoading] = useState<boolean>(true);
+
+  const { user, loading } = useUser();
 
   // Fetch current user and existing rules on mount
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
+    if (loading) return;
 
-      const API_BASE = import.meta.env.VITE_API_BASE_URL;
+    if (!user) {
+      setRulesLoading(false);
+      return;
+    }
 
-    // Fetch current user and then their rules
-    fetch(`${API_BASE}/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        // Fetch unavailability rules for this user
-        return apiFetch(`/api/unavailabilityRules/user/${data.id}`);
-      })
-      .then((r) => r.json())
-      .then((rules) => {
+    const fetchRules = async () => {
+      try {
+        const response = await apiFetch(
+          `/api/unavailabilityRules/user/${user.id}`,
+        );
+        const rules: UnavailabilityRule[] = await response.json();
         setUnavailabilityRules(rules);
-      })
-      .catch((err) => {
-        console.error("Error fetching data:", err);
-      });
-  }, []);
+      } catch (err) {
+        console.error("Error fetching rules");
+      } finally {
+        setRulesLoading(false);
+      }
+    };
+
+    fetchRules();
+  }, [user, loading]);
 
   const handleDateClick = (info: string) => {
     console.log(info);
@@ -63,9 +78,9 @@ function AvailabilityPage() {
   const handleEventClick = (info: EventClickArg) => {
     const ruleId = info.event.extendedProps.ruleId;
     if (!ruleId) return;
-    
+
     // Find the rule by ID
-    const clickedRule = unavailabilityRules.find(r => r.id === ruleId);
+    const clickedRule = unavailabilityRules.find((r) => r.id === ruleId);
     if (clickedRule) {
       setEditingRule(clickedRule);
       setDate(clickedRule.startDate);
@@ -78,7 +93,7 @@ function AvailabilityPage() {
     start1: string,
     end1: string,
     start2: string,
-    end2: string
+    end2: string,
   ): boolean => {
     const start1Time = new Date(`2000-01-01T${start1}:00`).getTime();
     const end1Time = new Date(`2000-01-01T${end1}:00`).getTime();
@@ -122,7 +137,15 @@ function AvailabilityPage() {
 
       const targetDays = rule.recurrence.daysOfWeek || [];
       if (targetDays.length === 0) {
-        const dayNames: DayOfWeek[] = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const dayNames: DayOfWeek[] = [
+          "Sun",
+          "Mon",
+          "Tue",
+          "Wed",
+          "Thu",
+          "Fri",
+          "Sat",
+        ];
         targetDays.push(dayNames[startDate.getDay()] as DayOfWeek);
       }
 
@@ -139,7 +162,9 @@ function AvailabilityPage() {
         let currentDate = new Date(firstOccurrence);
         while (currentDate <= endDate) {
           dates.push(currentDate.toISOString().split("T")[0]);
-          currentDate.setDate(currentDate.getDate() + 7 * rule.recurrence.interval);
+          currentDate.setDate(
+            currentDate.getDate() + 7 * rule.recurrence.interval,
+          );
         }
       }
     }
@@ -150,7 +175,7 @@ function AvailabilityPage() {
   // Check if two rules conflict
   const checkRulesConflict = (
     newRule: UnavailabilityRule,
-    existingRule: UnavailabilityRule
+    existingRule: UnavailabilityRule,
   ): boolean => {
     // Get all date occurrences for both rules
     const newRuleDates = generateRuleDates(newRule);
@@ -158,7 +183,7 @@ function AvailabilityPage() {
 
     // Find overlapping dates
     const overlappingDates = newRuleDates.filter((date) =>
-      existingRuleDates.includes(date)
+      existingRuleDates.includes(date),
     );
 
     if (overlappingDates.length === 0) {
@@ -166,7 +191,12 @@ function AvailabilityPage() {
     }
 
     // If either rule is all-day, they conflict on overlapping dates
-    if (newRule.allDay || existingRule.allDay || !newRule.timeRange || !existingRule.timeRange) {
+    if (
+      newRule.allDay ||
+      existingRule.allDay ||
+      !newRule.timeRange ||
+      !existingRule.timeRange
+    ) {
       return true;
     }
 
@@ -175,17 +205,17 @@ function AvailabilityPage() {
       newRule.timeRange!.startTime,
       newRule.timeRange!.endTime,
       existingRule.timeRange!.startTime,
-      existingRule.timeRange!.endTime
+      existingRule.timeRange!.endTime,
     );
   };
 
   // Check for conflicts with existing rules
   const checkForConflicts = (
     newRule: UnavailabilityRule,
-    existingRules: UnavailabilityRule[]
+    existingRules: UnavailabilityRule[],
   ): UnavailabilityRule[] => {
     return existingRules.filter((existingRule) =>
-      checkRulesConflict(newRule, existingRule)
+      checkRulesConflict(newRule, existingRule),
     );
   };
 
@@ -233,7 +263,7 @@ function AvailabilityPage() {
         .map((rule) =>
           apiFetch(`/api/unavailabilityRules/${rule.id}`, {
             method: "DELETE",
-          })
+          }),
         );
 
       await Promise.all(deletePromises);
@@ -253,9 +283,7 @@ function AvailabilityPage() {
 
       // Update state: remove deleted rules and add new one
       setUnavailabilityRules((prev) => [
-        ...prev.filter(
-          (r) => !conflictingRules.some((cr) => cr.id === r.id)
-        ),
+        ...prev.filter((r) => !conflictingRules.some((cr) => cr.id === r.id)),
         savedRule,
       ]);
 
@@ -277,12 +305,15 @@ function AvailabilityPage() {
 
   const handleUpdate = async (availability: UnavailabilityRule) => {
     if (!editingRule?.id) return;
-    
+
     try {
-      const response = await apiFetch(`/api/unavailabilityRules/${editingRule.id}`, {
-        method: "PUT",
-        body: JSON.stringify(availability),
-      });
+      const response = await apiFetch(
+        `/api/unavailabilityRules/${editingRule.id}`,
+        {
+          method: "PUT",
+          body: JSON.stringify(availability),
+        },
+      );
 
       if (!response.ok) {
         const error = await response.json();
@@ -291,7 +322,7 @@ function AvailabilityPage() {
 
       const updatedRule = await response.json();
       setUnavailabilityRules((prev) =>
-        prev.map((r) => (r.id === updatedRule.id ? updatedRule : r))
+        prev.map((r) => (r.id === updatedRule.id ? updatedRule : r)),
       );
       setIsModalOpen(false);
       setEditingRule(null);
@@ -303,15 +334,22 @@ function AvailabilityPage() {
 
   const handleDelete = async () => {
     if (!editingRule?.id) return;
-    
-    if (!window.confirm("Are you sure you want to delete this unavailability rule?")) {
+
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this unavailability rule?",
+      )
+    ) {
       return;
     }
 
     try {
-      const response = await apiFetch(`/api/unavailabilityRules/${editingRule.id}`, {
-        method: "DELETE",
-      });
+      const response = await apiFetch(
+        `/api/unavailabilityRules/${editingRule.id}`,
+        {
+          method: "DELETE",
+        },
+      );
 
       if (!response.ok) {
         const error = await response.json();
@@ -319,7 +357,7 @@ function AvailabilityPage() {
       }
 
       setUnavailabilityRules((prev) =>
-        prev.filter((r) => r.id !== editingRule.id)
+        prev.filter((r) => r.id !== editingRule.id),
       );
       setIsModalOpen(false);
       setEditingRule(null);
@@ -342,7 +380,7 @@ function AvailabilityPage() {
             start: combineDateAndTime(rule.startDate, rule.timeRange.startTime),
             end: combineDateAndTime(rule.endDate, rule.timeRange.endTime),
             extendedProps: { ruleId },
-          })
+          });
         } else {
           // all day
           events.push({
@@ -350,7 +388,7 @@ function AvailabilityPage() {
             start: rule.startDate,
             end: rule.endDate,
             extendedProps: { ruleId },
-          })
+          });
         }
       }
     } else {
@@ -373,11 +411,11 @@ function AvailabilityPage() {
                   title: "unavailable",
                   start: combineDateAndTime(
                     currentDate.toISOString().split("T")[0],
-                    rule.timeRange.startTime
+                    rule.timeRange.startTime,
                   ),
                   end: combineDateAndTime(
                     currentDate.toISOString().split("T")[0],
-                    rule.timeRange.endTime
+                    rule.timeRange.endTime,
                   ),
                   extendedProps: { ruleId },
                 });
@@ -413,14 +451,14 @@ function AvailabilityPage() {
           targetDays.push(
             ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
               startDate.getDay()
-            ] as DayOfWeek
+            ] as DayOfWeek,
           );
         }
 
         // For each target day, generate occurrences every x weeks
         for (const dayName of targetDays) {
           const targetDayOfWeek = dayMap[dayName];
-          
+
           // Find the first occurrence of this day on or after startDate
           const firstOccurrence = new Date(startDate);
           const startDayOfWeek = firstOccurrence.getDay();
@@ -429,7 +467,7 @@ function AvailabilityPage() {
             daysToFirst += 7;
           }
           firstOccurrence.setDate(firstOccurrence.getDate() + daysToFirst);
-          
+
           // Generate all occurrences of this day
           let currentDate = new Date(firstOccurrence);
           while (currentDate <= endDate) {
@@ -437,11 +475,14 @@ function AvailabilityPage() {
             if (!calendarStartDate || currentDate >= calendarStartDate) {
               if (!calendarEndDate || currentDate <= calendarEndDate) {
                 const dateStr = currentDate.toISOString().split("T")[0];
-                
+
                 if (rule.timeRange) {
                   events.push({
                     title: "unavailable",
-                    start: combineDateAndTime(dateStr, rule.timeRange.startTime),
+                    start: combineDateAndTime(
+                      dateStr,
+                      rule.timeRange.startTime,
+                    ),
                     end: combineDateAndTime(dateStr, rule.timeRange.endTime),
                     extendedProps: { ruleId },
                   });
@@ -456,14 +497,16 @@ function AvailabilityPage() {
                 }
               }
             }
-            
+
             // Move to next occurrence (add interval weeks)
-            currentDate.setDate(currentDate.getDate() + 7 * recurrence.interval);
+            currentDate.setDate(
+              currentDate.getDate() + 7 * recurrence.interval,
+            );
           }
         }
       }
     }
-    console.log('events:', events)
+    console.log("events:", events);
     return events;
   };
 
@@ -487,7 +530,29 @@ function AvailabilityPage() {
     setTooltipPosition({ x, y });
     setIsToolTipOpen(true);
   };
-  
+
+  // Show loading state while user or shifts are loading
+  if (loading || rulesLoading) {
+    return (
+      <div className="page-container dashboard-container">
+        <div style={{ textAlign: "center", padding: "50px" }}>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Optional: Handle case where user is not logged in
+  if (!user) {
+    return (
+      <div className="page-container dashboard-container">
+        <div style={{ textAlign: "center", padding: "50px" }}>
+          <p>Please log in to view availability.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page-container">
       {isModalOpen && (
@@ -519,8 +584,9 @@ function AvailabilityPage() {
           contentHeight={500}
           dateClick={(info) => handleDateClick(info.dateStr)}
           datesSet={(info) => {
-            console.log(info),
-            setCalendarStart(info.startStr), setCalendarEnd(info.endStr);
+            (console.log(info),
+              setCalendarStart(info.startStr),
+              setCalendarEnd(info.endStr));
           }}
           eventClick={handleEventClick}
           eventMouseEnter={(info) => handleMouseEnter(info)}
@@ -528,12 +594,12 @@ function AvailabilityPage() {
         />
       </div>
       {isToolTipOpen && (
-          <ToolTip
-            eventInfo={currentEvent}
-            X={tooltipPosition.x}
-            Y={tooltipPosition.y}
-          />
-        )}
+        <ToolTip
+          eventInfo={currentEvent}
+          X={tooltipPosition.x}
+          Y={tooltipPosition.y}
+        />
+      )}
       {/* <button
         onClick={() => {
           console.log(calendarStart, calendarEnd);

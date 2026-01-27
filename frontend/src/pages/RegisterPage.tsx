@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "../styles/LoginPage.css";   // reuse same styling
+import "../styles/LoginPage.css"; // reuse same styling
 
 function RegisterPage() {
   const [userName, setUserName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [companyStr, setCompanyStr] = useState("");
+  const [isNewCompany, setIsNewCompany] = useState(false);
 
   const nav = useNavigate();
 
@@ -17,9 +19,10 @@ function RegisterPage() {
       alert("Passwords do not match");
       return;
     }
+    // if not unique email - fail
 
     try {
-        const API_BASE = import.meta.env.VITE_API_BASE_URL;
+      const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
       const res = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
@@ -30,6 +33,8 @@ function RegisterPage() {
           userName,
           email,
           password,
+          companyStr,
+          isNewCompany,
         }),
       });
 
@@ -66,7 +71,7 @@ function RegisterPage() {
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value.toLowerCase())}
             placeholder="email"
             required
           />
@@ -88,6 +93,25 @@ function RegisterPage() {
             value={confirm}
             placeholder="confirm password"
             onChange={(e) => setConfirm(e.target.value)}
+            required
+          />
+        </label>
+
+        <div className="company-setup" style={{ display: "flex" }}>
+          <button type="button" onClick={() => setIsNewCompany(true)} style={isNewCompany ? {} : {background:"gray"}}>
+            Create New
+          </button>
+          <button type="button" onClick={() => setIsNewCompany(false)} style={isNewCompany ? {background:"gray"} : {}}>
+            Join Existing
+          </button>
+        </div>
+
+        <label>
+          <input
+            type="companyStr"
+            value={companyStr}
+            placeholder={isNewCompany ? "company name" : "company invite code"}
+            onChange={(e) => setCompanyStr(e.target.value)}
             required
           />
         </label>

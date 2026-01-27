@@ -1,7 +1,9 @@
-export interface Employee {
+export interface User {
+  email: string;
   id: string;
   userName: string;
   isManager: boolean;
+  companyId: string;
   // maxHoursPerWeek: number;
 }
 

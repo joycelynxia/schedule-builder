@@ -27,10 +27,7 @@ const formatShiftForFrontend = (shift: any) => {
   };
 };
 
-export const createScheduledShift = async (
-  req: AuthRequest,
-  res: Response
-) => {
+export const createScheduledShift = async (req: AuthRequest, res: Response) => {
   try {
     const user = req.user;
     if (!user) {
@@ -74,7 +71,7 @@ export const createScheduledShift = async (
 
 export const getAllScheduledShifts = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ) => {
   try {
     const user = req.user;
@@ -83,10 +80,17 @@ export const getAllScheduledShifts = async (
     }
 
     // Managers see all shifts, employees only see published
-    const whereClause = user.isManager ? {} : { status: $Enums.ShiftStatus.PUBLISHED };
+    const whereClause = user.isManager
+      ? {}
+      : { status: $Enums.ShiftStatus.PUBLISHED };
 
     const shifts = await prisma.scheduledShift.findMany({
-      where: whereClause,
+      where: {
+        user: {
+          companyId: user.companyId,
+        },
+        ...whereClause,
+      },
       orderBy: {
         date: "asc",
       },
@@ -100,10 +104,7 @@ export const getAllScheduledShifts = async (
   }
 };
 
-export const updateScheduledShift = async (
-  req: AuthRequest,
-  res: Response
-) => {
+export const updateScheduledShift = async (req: AuthRequest, res: Response) => {
   try {
     const user = req.user;
     if (!user) {
@@ -157,10 +158,7 @@ export const updateScheduledShift = async (
   }
 };
 
-export const deleteScheduledShift = async (
-  req: AuthRequest,
-  res: Response
-) => {
+export const deleteScheduledShift = async (req: AuthRequest, res: Response) => {
   try {
     const user = req.user;
     if (!user) {
@@ -211,7 +209,9 @@ export const publishDraftShifts = async (req: AuthRequest, res: Response) => {
     }
 
     if (!user.isManager) {
-      return res.status(403).json({ error: "Only managers can publish shifts" });
+      return res
+        .status(403)
+        .json({ error: "Only managers can publish shifts" });
     }
 
     const { shiftIds } = req.body;

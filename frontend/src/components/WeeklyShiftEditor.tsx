@@ -3,6 +3,7 @@ import type { Shift, UnavailabilityRule, DayOfWeek } from "../types/models";
 import "../styles/ShiftEditor.css";
 import Select from "react-select";
 import { apiFetch } from "../api";
+import { useUser } from "../context/UserContext";
 
 interface Props {
   draftShifts: Shift[];
@@ -46,6 +47,7 @@ function WeeklyShiftEditor({
   >([]);
   const [note, setNote] = useState<string>("");
   const [timeError, setTimeError] = useState<string>("");
+  const {user, loading} = useUser();
 
   // Check if a user is available for a given date and time range
   // Approach: Check if shift date falls between rule dates, matches day of week (for weekly), and time overlaps
@@ -131,7 +133,7 @@ function WeeklyShiftEditor({
   // Load users and their unavailability rules
   useEffect(() => {
     Promise.all([
-      apiFetch("/api/users").then((res) => res.json()),
+      apiFetch(`/api/users/${user?.companyId}`).then((res) => res.json()),
       apiFetch("/api/unavailabilityRules").then((res) => res.json()),
     ]).then(([usersData, rulesData]) => {
       const usersWithRules = usersData.map((user: { id: string; userName: string }) => ({
@@ -417,7 +419,7 @@ function WeeklyShiftEditor({
         </label>
 
         <label>
-          Select Employee{isEditing ? "" : "(s)"}
+          Select User{isEditing ? "" : "(s)"}
           <Select
             isMulti={!isEditing}
             options={employeeOptions}

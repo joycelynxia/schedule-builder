@@ -11,57 +11,55 @@ import type { Dictionary } from "@fullcalendar/core/internal";
 import ToolTip from "../components/ToolTip";
 import type { EventHoveringArg } from "@fullcalendar/core/index.js";
 import { apiFetch } from "../api";
+import { useUser } from "../context/UserContext";
 
 function SchedulePage() {
   const [draftShifts, setDraftShifts] = useState<Shift[]>([]);
   const [publishedShifts, setPublishedShifts] = useState<Shift[]>([]);
-  // const [isEditing, setIsEditing] = useState<Boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<Boolean>(false);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
   const [isToolTipOpen, setIsToolTipOpen] = useState<boolean>(false);
   const [currentEvent, setCurrentEvent] = useState<Dictionary>({});
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-  const [user, setUser] = useState<{
-    id: string;
-    userName: string;
-    isManager: boolean;
-  } | null>(null);
-  // const [loading, setLoading] = useState<boolean>(true);
   const [isPublishModalOpen, setIsPublishModalOpen] = useState<boolean>(false);
   const [selectedShiftIds, setSelectedShiftIds] = useState<Set<string>>(new Set());
+  const [shiftsLoading, setShiftsLoading] = useState<boolean>(true);
 
-  // Load user and shifts on mount
+  // Get user from context instead of fetching
+  const { user, loading } = useUser();
+
+  // Load shifts on mount (only after user is loaded)
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
+    // Wait for user to be loaded
+    if (loading) return;
+    
+    // If no user, don't fetch shifts
+    if (!user) {
+      setShiftsLoading(false);
+      return;
+    }
 
-      const API_BASE = import.meta.env.VITE_API_BASE_URL;
-
-    // Fetch current user
-    fetch(`${API_BASE}/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        setUser(data);
-        // Fetch all shifts
-        return apiFetch("/api/shifts");
-      })
-      .then((r) => r.json())
-      .then((shifts: Shift[]) => {
+    const fetchShifts = async () => {
+      try {
+        const response = await apiFetch("/api/shifts");
+        const shifts: Shift[] = await response.json();
+        
         // Separate draft and published shifts
         const drafts = shifts.filter((s) => !s.isPublished);
         const published = shifts.filter((s) => s.isPublished);
+        
         setDraftShifts(drafts);
         setPublishedShifts(published);
-        // setLoading(false);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error("Error fetching shifts:", err);
-        // setLoading(false);
-      });
-  }, []);
+      } finally {
+        setShiftsLoading(false);
+      }
+    };
+
+    fetchShifts();
+  }, [user, loading]); // Re-run if user changes
 
   const addShift = (shift: Shift) => {
     setIsModalOpen(false);
@@ -127,7 +125,6 @@ function SchedulePage() {
       setPublishedShifts((prev) => [...prev, ...published]);
       setSelectedShiftIds(new Set());
       setIsPublishModalOpen(false);
-      // setIsEditing(false);
     } catch (error: any) {
       console.error("Error publishing shifts:", error);
       alert(error.message || "Failed to publish shifts");
@@ -158,7 +155,6 @@ function SchedulePage() {
       setDraftShifts((prev) => prev.filter((s) => !selectedShiftIds.has(s.id)));
       setSelectedShiftIds(new Set());
       setIsPublishModalOpen(false);
-      // setIsEditing(false);
     } catch (error: any) {
       console.error("Error deleting shifts:", error);
       alert(error.message || "Failed to delete shifts");
@@ -255,12 +251,31 @@ function SchedulePage() {
     setIsToolTipOpen(true);
   };
 
+  // Show loading state while user or shifts are loading
+  if (loading || shiftsLoading) {
+    return (
+      <div className="page-container dashboard-container">
+        <div style={{ textAlign: 'center', padding: '50px' }}>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Optional: Handle case where user is not logged in
+  if (!user) {
+    return (
+      <div className="page-container dashboard-container">
+        <div style={{ textAlign: 'center', padding: '50px' }}>
+          <p>Please log in to view schedules.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container dashboard-container">
       <div>
-        {/* <button onClick={() => console.log(user?.isManager)}>is manager</button> */}
-        {/* <h1>manager dashboard</h1> */}
         <div className="modal">
           {isModalOpen && (
             <WeeklyShiftEditor
@@ -396,7 +411,6 @@ function SchedulePage() {
             Y={tooltipPosition.y}
           />
         )}
-        {/* </div> */}
       </div>
     </div>
   );

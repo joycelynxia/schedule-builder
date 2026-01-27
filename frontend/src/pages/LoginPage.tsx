@@ -43,7 +43,7 @@ function LoginPage() {
           <input
             // type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value.toLowerCase())}
             placeholder="email"
             required
           />

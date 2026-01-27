@@ -45,7 +45,7 @@ body {
   place-items: center;
   align-items: center;
   justify-content: center;
-  min-width: 320px;
+  /* min-width: 320px; */
   min-height: 100vh;
   background: linear-gradient(135deg, #f5f3f8 0%, #ede9f7 100%);
 }

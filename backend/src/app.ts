@@ -10,7 +10,7 @@ import unavailabilityRuleRoutes from "./routes/unavailabilityRules";
 import scheduledShiftRoutes from "./routes/scheduledShifts";
 import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
-
+import companyRoutes from "./routes/companyRoutes";
 
 const app = express();
 
@@ -23,6 +23,7 @@ app.use("/api/unavailabilityRules", unavailabilityRuleRoutes);
 app.use("/api/shifts", scheduledShiftRoutes);
 app.use("/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/company", companyRoutes)
 
 // ---- Health check ----
 app.get("/api/health", (req: Request, res: Response) => {
