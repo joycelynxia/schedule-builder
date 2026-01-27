@@ -47,7 +47,7 @@ function WeeklyShiftEditor({
   >([]);
   const [note, setNote] = useState<string>("");
   const [timeError, setTimeError] = useState<string>("");
-  const {user, loading} = useUser();
+  const {user} = useUser();
 
   // Check if a user is available for a given date and time range
   // Approach: Check if shift date falls between rule dates, matches day of week (for weekly), and time overlaps

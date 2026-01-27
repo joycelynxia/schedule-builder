@@ -1,16 +1,16 @@
 import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
-import type { Shift, User } from "../types/models";
-import { useNavigate } from "react-router-dom";
+import type { User } from "../types/models";
+// import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../api";
 import { useUser } from "../context/UserContext";
-import '../styles/TeamPage.css'
+import "../styles/TeamPage.css";
 
 function TeamPage() {
   const [inviteCode, setInviteCode] = useState("");
   const [employees, setEmployees] = useState<User[]>([]);
   const [copied, setCopied] = useState(false);
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [employeesLoading, setEmployeesLoading] = useState<boolean>(true);
 
   // Get user from context instead of fetching
@@ -31,7 +31,7 @@ function TeamPage() {
       try {
         const response = await apiFetch(`/api/company/${user.companyId}`);
         const company = await response.json();
-        console.log(company)
+        console.log(company);
         setInviteCode(company.inviteCode);
         setEmployees(company.users);
       } catch (error) {
@@ -64,24 +64,41 @@ function TeamPage() {
   };
 
   return (
-    <div>
+    <div className="team-page">
       <Navbar />
-      <div></div>
-      <label>company invite code</label>
-      <input value={inviteCode} readOnly />
-      <button onClick={() => copyToClipboard(inviteCode)}>
-        {copied ? "Copied!" : "Copy"}
-      </button>
+      <div className="invite-code">
+        <label>company invite code</label>
+        <div style={{ display: "flex" }}>
+          <input value={inviteCode} readOnly />
+          <button onClick={() => copyToClipboard(inviteCode)}>
+            {copied ? "Copied!" : "Copy"}
+          </button>
+        </div>
+      </div>
 
       <label>Current Team</label>
-      {employees.map((emp) => (
-        <div className="employee-container" key={emp.id}>
-          <span>{emp.userName}</span>
-          <span>{emp.email}</span>
-          <span>{emp.isManager ? "Manager" : "Employee"}</span>
-        </div>
-      ))}
-      {/* map all employees */}
+      {employeesLoading ? (
+        <span>loading team members...</span>
+      ) : (
+        <table className="employee-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+            </tr>
+          </thead>
+          <tbody>
+            {employees.map((emp) => (
+              <tr key={emp.id}>
+                <td>{emp.userName}</td>
+                <td>{emp.email}</td>
+                <td>{emp.isManager ? "Manager" : "Employee"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }

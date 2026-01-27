@@ -1,4 +1,29 @@
-.employee-container {
+.team-page {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
+  padding: 1rem;
+}
+
+.employee-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-size: 14px;
+  background-color: white;
+}
+
+.employee-table th,
+.employee-table td {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  text-align: left;
+  background-color: white;
+}
+
+.employee-table th {
+  font-weight: 600;
+}
+
+.employee-table tbody tr:hover {
+  background-color: white;
 }
