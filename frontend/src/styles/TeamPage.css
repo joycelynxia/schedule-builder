@@ -1,23 +1,66 @@
 .team-page {
-  display: flex;
-  flex-direction: column;
   padding: 1rem;
+  max-width: 100%;
+  box-sizing: border-box;
+  font-family: sans-serif;
+  background-color: #fff;
+  color: #333;
+}
+
+.invite-code {
+  margin-bottom: 1rem;
+}
+
+.invite-code label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.invite-code-input {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.invite-code-input input {
+  flex: 1;
+  padding: 0.5rem;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.invite-code-input button {
+  padding: 0.5rem 1rem;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.invite-code-input button:active {
+  background-color: #0056b3;
+}
+
+/* Table Styles */
+.table-container {
+  width: 100%;
+  overflow-x: auto; /* horizontal scroll fallback for slightly larger screens */
 }
 
 .employee-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 1rem;
   font-size: 14px;
   background-color: white;
 }
 
 .employee-table th,
 .employee-table td {
-  padding: 10px 12px;
+  padding: 10px;
   border: 1px solid #ddd;
   text-align: left;
-  background-color: white;
 }
 
 .employee-table th {
@@ -25,5 +68,55 @@
 }
 
 .employee-table tbody tr:hover {
-  background-color: white;
+  background-color: #f9f9f9;
+}
+
+/* Stacked layout for small screens */
+@media (max-width: 480px) {
+  .employee-table,
+  .employee-table thead,
+  .employee-table tbody,
+  .employee-table th,
+  .employee-table td,
+  .employee-table tr {
+    display: block;
+    width: 100%;
+  }
+
+  .employee-table thead {
+    display: none; /* hide table headers */
+  }
+
+  .employee-table tbody tr {
+    margin-bottom: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 0.5rem;
+    background-color: white;
+  }
+
+  .employee-table td {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    border: none;
+    border-bottom: 1px solid #eee;
+    font-size: 12px;
+  }
+
+  .employee-table td:last-child {
+    border-bottom: none;
+  }
+
+  /* Label each stacked row */
+  .employee-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    flex: 1;
+  }
+
+  .employee-table td span {
+    flex: 1;
+    text-align: right;
+  }
 }
