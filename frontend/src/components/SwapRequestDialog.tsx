@@ -115,7 +115,7 @@ function SwapRequestDialog({ shift, onClose, onSuccess }: Props) {
                 type="radio"
                 value="cover"
                 checked={requestType === "cover"}
-                onChange={(e) => {
+                onChange={() => {
                   setRequestType("cover");
                   setSelectedUserId("");
                 }}
@@ -127,7 +127,7 @@ function SwapRequestDialog({ shift, onClose, onSuccess }: Props) {
                 type="radio"
                 value="swap"
                 checked={requestType === "swap"}
-                onChange={(e) => setRequestType("swap")}
+                onChange={() => setRequestType("swap")}
               />
               <span>Request Swap (specific person)</span>
             </label>

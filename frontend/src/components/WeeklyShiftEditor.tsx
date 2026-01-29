@@ -440,7 +440,7 @@ function WeeklyShiftEditor({
               } else if (!newValue) {
                 setSelectedEmployees([]);
               } else {
-                setSelectedEmployees([newValue]);
+                setSelectedEmployees([newValue as OptionType]);
               }
             }}
             isDisabled={isEditing && !user?.isManager}
