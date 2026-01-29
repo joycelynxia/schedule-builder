@@ -9,9 +9,12 @@ import WeeklyShiftEditor from "../components/WeeklyShiftEditor";
 import "../styles/Calendar.css";
 import type { Dictionary } from "@fullcalendar/core/internal";
 import ToolTip from "../components/ToolTip";
-import type { EventHoveringArg } from "@fullcalendar/core/index.js";
+import type { EventHoveringArg, DateSelectArg } from "@fullcalendar/core/index.js";
 import { apiFetch } from "../api";
 import { useUser } from "../context/UserContext";
+import { useSocket } from "../context/SocketContext";
+import SwapRequestDialog from "../components/SwapRequestDialog";
+import CoverRequestDialog from "../components/CoverRequestDialog";
 
 function SchedulePage() {
   const [draftShifts, setDraftShifts] = useState<Shift[]>([]);
@@ -25,9 +28,18 @@ function SchedulePage() {
   const [isPublishModalOpen, setIsPublishModalOpen] = useState<boolean>(false);
   const [selectedShiftIds, setSelectedShiftIds] = useState<Set<string>>(new Set());
   const [shiftsLoading, setShiftsLoading] = useState<boolean>(true);
+  const [currentView, setCurrentView] = useState<string>("dayGridMonth");
+  const [selectedStartTime, setSelectedStartTime] = useState<string | null>(null);
+  const [selectedEndTime, setSelectedEndTime] = useState<string | null>(null);
+  const [swapRequestDialogOpen, setSwapRequestDialogOpen] = useState(false);
+  const [selectedShiftForSwap, setSelectedShiftForSwap] = useState<Shift | null>(null);
+  const [coverRequestDialogOpen, setCoverRequestDialogOpen] = useState(false);
+  const [selectedShiftForCover, setSelectedShiftForCover] = useState<Shift | null>(null);
+  const [shiftView, setShiftView] = useState<"all" | "mine">("all");
 
   // Get user from context instead of fetching
   const { user, loading } = useUser();
+  const { socket } = useSocket();
 
   // Load shifts on mount (only after user is loaded)
   useEffect(() => {
@@ -44,11 +56,8 @@ function SchedulePage() {
       try {
         const response = await apiFetch("/api/shifts");
         const shifts: Shift[] = await response.json();
-        
-        // Separate draft and published shifts
         const drafts = shifts.filter((s) => !s.isPublished);
         const published = shifts.filter((s) => s.isPublished);
-        
         setDraftShifts(drafts);
         setPublishedShifts(published);
       } catch (err) {
@@ -59,7 +68,72 @@ function SchedulePage() {
     };
 
     fetchShifts();
-  }, [user, loading]); // Re-run if user changes
+  }, [user, loading]);
+
+  // Listen for real-time shift updates via socket
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleShiftCreated = (shift: Shift) => {
+      // Only add if not already in the list (avoid duplicates from own actions)
+      setDraftShifts((prev) => {
+        if (prev.some((s) => s.id === shift.id)) return prev;
+        return shift.isPublished ? prev : [...prev, shift];
+      });
+      setPublishedShifts((prev) => {
+        if (prev.some((s) => s.id === shift.id)) return prev;
+        return shift.isPublished ? [...prev, shift] : prev;
+      });
+    };
+
+    const handleShiftUpdated = (shift: Shift) => {
+      // Remove from both lists and add to appropriate list
+      setDraftShifts((prev) => {
+        const filtered = prev.filter((s) => s.id !== shift.id);
+        return shift.isPublished ? filtered : [...filtered, shift];
+      });
+      setPublishedShifts((prev) => {
+        const filtered = prev.filter((s) => s.id !== shift.id);
+        return shift.isPublished ? [...filtered, shift] : filtered;
+      });
+    };
+
+    const handleShiftDeleted = (data: { id: string }) => {
+      // Remove from both lists
+      setDraftShifts((prev) => prev.filter((s) => s.id !== data.id));
+      setPublishedShifts((prev) => prev.filter((s) => s.id !== data.id));
+    };
+
+    const refetchShifts = () => {
+      if (!user) return;
+      apiFetch("/api/shifts")
+        .then((r) => r.json())
+        .then((shifts: Shift[]) => {
+          const drafts = shifts.filter((s) => !s.isPublished);
+          const published = shifts.filter((s) => s.isPublished);
+          setDraftShifts(drafts);
+          setPublishedShifts(published);
+        })
+        .catch(console.error);
+    };
+
+    const handleCoverBidApproved = () => refetchShifts();
+    const handleSwapApproved = () => refetchShifts();
+
+    socket.on("shift:created", handleShiftCreated);
+    socket.on("shift:updated", handleShiftUpdated);
+    socket.on("shift:deleted", handleShiftDeleted);
+    socket.on("coverBid:approved", handleCoverBidApproved);
+    socket.on("swapRequest:approved", handleSwapApproved);
+
+    return () => {
+      socket.off("shift:created", handleShiftCreated);
+      socket.off("shift:updated", handleShiftUpdated);
+      socket.off("shift:deleted", handleShiftDeleted);
+      socket.off("coverBid:approved", handleCoverBidApproved);
+      socket.off("swapRequest:approved", handleSwapApproved);
+    };
+  }, [socket, user]);
 
   const addShift = (shift: Shift) => {
     setIsModalOpen(false);
@@ -203,7 +277,7 @@ function SchedulePage() {
   };
 
   // Combine all shifts for calendar display with color differentiation
-  const allShifts = [
+  const allShiftsRaw = [
     ...draftShifts.map((shift) => ({
       ...shift,
       backgroundColor: "#9e9e9e", // Gray for drafts
@@ -212,30 +286,90 @@ function SchedulePage() {
     })),
     ...publishedShifts.map((shift) => ({
       ...shift,
-      // Keep default colors for published (FullCalendar default)
+      ...(shift.needsCover
+        ? { backgroundColor: "#c62828", borderColor: "#b71c1c", textColor: "white" }
+        : {}),
     })),
   ];
 
+  // Filter by view: "all" (company) or "mine" (user's shifts only)
+  const allShifts =
+    shiftView === "mine" && user
+      ? allShiftsRaw.filter((s) => s.userId === user.id)
+      : allShiftsRaw;
+
   const handleEventClick = (info: EventHoveringArg) => {
-    if (!user?.isManager) return;
-    
-    // Find the shift from allShifts using the event ID
     const clickedShift = allShifts.find(
       (s) => s.id === info.event.id || s.id === String(info.event.id)
     );
-    
-    if (clickedShift) {
+    if (!clickedShift) return;
+
+    if (user?.isManager) {
       setEditingShift(clickedShift);
       setSelectedDate(clickedShift.start.split("T")[0]);
       setIsModalOpen(true);
+      return;
+    }
+
+    // Own published shift: request swap/cover
+    if (clickedShift.userId === user?.id && clickedShift.isPublished) {
+      setSelectedShiftForSwap(clickedShift);
+      setSwapRequestDialogOpen(true);
+      return;
+    }
+
+    // Someone else's shift needing cover: request to cover
+    if (
+      clickedShift.isPublished &&
+      clickedShift.needsCover &&
+      clickedShift.coverRequestId &&
+      clickedShift.userId !== user?.id
+    ) {
+      setSelectedShiftForCover(clickedShift);
+      setCoverRequestDialogOpen(true);
     }
   };
 
   const handleDateClick = (info: string) => {
     if (!user?.isManager) return;
     setSelectedDate(info);
+    setSelectedStartTime(null); // Clear selected times for date click
+    setSelectedEndTime(null);
     setEditingShift(null); // Clear editing shift when creating new
     setIsModalOpen(true);
+  };
+
+  // Handle drag selection in week view to create shifts
+  const handleSelect = (selectInfo: DateSelectArg) => {
+    if (!user?.isManager) {
+      selectInfo.view.calendar.unselect();
+      return;
+    }
+
+    // Only allow selection in week view
+    if (selectInfo.view.type !== "timeGridWeek") {
+      selectInfo.view.calendar.unselect();
+      return;
+    }
+
+    const start = selectInfo.start;
+    const end = selectInfo.end;
+    
+    // Extract date and times
+    const dateStr = start.toISOString().split("T")[0];
+    const startTime = start.toTimeString().slice(0, 5); // HH:MM format
+    const endTime = end.toTimeString().slice(0, 5); // HH:MM format
+
+    setSelectedDate(dateStr);
+    setSelectedStartTime(startTime);
+    setSelectedEndTime(endTime);
+    setEditingShift(null);
+    
+    // Open modal
+    setIsModalOpen(true);
+    
+    // Unselect the selection
+    selectInfo.view.calendar.unselect();
   };
 
   const handleMouseEnter = (info: EventHoveringArg) => {
@@ -280,27 +414,55 @@ function SchedulePage() {
           {isModalOpen && (
             <WeeklyShiftEditor
               draftShifts={draftShifts}
-              onAddShift={addShift}
-              onUpdateShift={updateShift}
+              onAddShift={(shift) => {
+                addShift(shift);
+                setSelectedStartTime(null);
+                setSelectedEndTime(null);
+              }}
+              onUpdateShift={(shift) => {
+                updateShift(shift);
+                setSelectedStartTime(null);
+                setSelectedEndTime(null);
+              }}
               onDeleteShift={deleteShift}
               onCancelShift={() => {
                 setIsModalOpen(false);
                 setEditingShift(null);
+                setSelectedStartTime(null);
+                setSelectedEndTime(null);
               }}
               date={selectedDate}
               editingShift={editingShift}
+              initialStartTime={selectedStartTime}
+              initialEndTime={selectedEndTime}
             />
           )}
         </div>
-        {user?.isManager && (
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
-            {draftShifts.length > 0 && (
-              <button onClick={handlePublishClick}>
-                Bulk Edit ({draftShifts.length} draft{draftShifts.length !== 1 ? "s" : ""})
-              </button>
-            )}
+        <div className="schedule-toolbar">
+          <div className="shift-view-toggle">
+            <button
+              type="button"
+              className={shiftView === "all" ? "active" : ""}
+              onClick={() => setShiftView("all")}
+              aria-pressed={shiftView === "all"}
+            >
+              All shifts
+            </button>
+            <button
+              type="button"
+              className={shiftView === "mine" ? "active" : ""}
+              onClick={() => setShiftView("mine")}
+              aria-pressed={shiftView === "mine"}
+            >
+              My shifts
+            </button>
           </div>
-        )}
+          {user?.isManager && draftShifts.length > 0 && (
+            <button onClick={handlePublishClick} className="bulk-edit-btn">
+              Bulk Edit ({draftShifts.length} draft{draftShifts.length !== 1 ? "s" : ""})
+            </button>
+          )}
+        </div>
         
         {/* Publish Preview Modal */}
         {isPublishModalOpen && (
@@ -398,7 +560,12 @@ function SchedulePage() {
             events={allShifts}
             aspectRatio={1}
             contentHeight={500}
+            selectable={user?.isManager && currentView === "timeGridWeek"}
+            selectMirror={true}
+            selectOverlap={false}
             dateClick={(info) => handleDateClick(info.dateStr)}
+            select={handleSelect}
+            viewDidMount={(view) => setCurrentView(view.view.type)}
             eventClick={handleEventClick}
             eventMouseEnter={(info) => handleMouseEnter(info)}
             eventMouseLeave={() => setIsToolTipOpen(false)}
@@ -409,6 +576,26 @@ function SchedulePage() {
             eventInfo={currentEvent}
             X={tooltipPosition.x}
             Y={tooltipPosition.y}
+          />
+        )}
+        {swapRequestDialogOpen && selectedShiftForSwap && (
+          <SwapRequestDialog
+            shift={selectedShiftForSwap}
+            onClose={() => {
+              setSwapRequestDialogOpen(false);
+              setSelectedShiftForSwap(null);
+            }}
+            onSuccess={() => {}}
+          />
+        )}
+        {coverRequestDialogOpen && selectedShiftForCover && (
+          <CoverRequestDialog
+            shift={selectedShiftForCover}
+            onClose={() => {
+              setCoverRequestDialogOpen(false);
+              setSelectedShiftForCover(null);
+            }}
+            onSuccess={() => {}}
           />
         )}
       </div>

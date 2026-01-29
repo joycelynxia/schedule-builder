@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/db";
 import { User, $Enums } from "@prisma/client";
+import { getIO } from "../config/socket";
+import { sendShiftPublishedEmail } from "../utils/email";
 
 interface AuthRequest extends Request {
   user?: Omit<User, "password">;
@@ -58,9 +60,45 @@ export const createScheduledShift = async (req: AuthRequest, res: Response) => {
         note,
         status: (status as $Enums.ShiftStatus) || $Enums.ShiftStatus.DRAFT,
       },
+      include: {
+        user: {
+          select: {
+            id: true,
+            userName: true,
+            email: true,
+            companyId: true,
+          },
+        },
+      },
     });
 
-    return res.status(201).json(formatShiftForFrontend(shift));
+    const formattedShift = formatShiftForFrontend(shift);
+    
+    // Emit socket event to company room
+    const io = getIO();
+    io.to(`company:${shift.user.companyId}`).emit("shift:created", formattedShift);
+
+    // Send email notification if manager created shift for another user
+    if (user.isManager && userId !== user.id) {
+      const shiftDate = shift.date.toISOString().split("T")[0];
+      const isDraft = shift.status === $Enums.ShiftStatus.DRAFT;
+      
+      // Send email notification (non-blocking)
+      sendShiftPublishedEmail({
+        userName: shift.user.userName,
+        userEmail: shift.user.email,
+        shiftDate,
+        startTime: shift.startTime,
+        endTime: shift.endTime,
+        title: shift.title || undefined,
+        note: shift.note || undefined,
+        isDraft,
+      }).catch((error) => {
+        console.error("Error sending shift creation email:", error);
+      });
+    }
+
+    return res.status(201).json(formattedShift);
   } catch (error) {
     console.error(error);
     return res.status(500).json({
@@ -79,24 +117,37 @@ export const getAllScheduledShifts = async (
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // Managers see all shifts, employees only see published
     const whereClause = user.isManager
       ? {}
       : { status: $Enums.ShiftStatus.PUBLISHED };
 
-    const shifts = await prisma.scheduledShift.findMany({
-      where: {
-        user: {
-          companyId: user.companyId,
+    const [shifts, coverRequests] = await Promise.all([
+      prisma.scheduledShift.findMany({
+        where: {
+          user: { companyId: user.companyId },
+          ...whereClause,
         },
-        ...whereClause,
-      },
-      orderBy: {
-        date: "asc",
-      },
-    });
+        orderBy: { date: "asc" },
+      }),
+      prisma.shiftSwapRequest.findMany({
+        where: {
+          status: $Enums.SwapRequestStatus.PENDING,
+          requestedUserId: null,
+          shift: { user: { companyId: user.companyId } },
+        },
+        select: { id: true, shiftId: true },
+      }),
+    ]);
 
-    const formatted = shifts.map(formatShiftForFrontend);
+    const coverByShiftId = new Map(coverRequests.map((r) => [r.shiftId, r]));
+    const formatted = shifts.map((s) => {
+      const cover = coverByShiftId.get(s.id);
+      return {
+        ...formatShiftForFrontend(s),
+        needsCover: !!cover,
+        coverRequestId: cover?.id ?? undefined,
+      };
+    });
     res.json(formatted);
   } catch (error) {
     console.error(error);
@@ -117,11 +168,14 @@ export const updateScheduledShift = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: "Shift ID is required" });
     }
 
-    const { title, date, startTime, endTime, note, status } = req.body;
+    const { title, date, startTime, endTime, note, status, userId: newUserId } = req.body;
 
     // Check if shift exists
     const existingShift = await prisma.scheduledShift.findUnique({
       where: { id: idString },
+      include: {
+        user: { select: { companyId: true } },
+      },
     });
 
     if (!existingShift) {
@@ -136,6 +190,23 @@ export const updateScheduledShift = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: "Forbidden" });
     }
 
+    // Only managers can reassign a shift to another user
+    if (newUserId !== undefined) {
+      if (!user.isManager) {
+        return res.status(403).json({ error: "Only managers can change the assigned user" });
+      }
+      const targetUser = await prisma.user.findUnique({
+        where: { id: newUserId },
+        select: { companyId: true },
+      });
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      if (targetUser.companyId !== existingShift.user.companyId) {
+        return res.status(403).json({ error: "User must be in the same company" });
+      }
+    }
+
     const updateData: any = {};
     if (title !== undefined) updateData.title = title;
     if (date !== undefined) updateData.date = new Date(date);
@@ -143,13 +214,27 @@ export const updateScheduledShift = async (req: AuthRequest, res: Response) => {
     if (endTime !== undefined) updateData.endTime = endTime;
     if (note !== undefined) updateData.note = note;
     if (status !== undefined) updateData.status = status;
+    if (newUserId !== undefined) updateData.userId = newUserId;
 
     const updatedShift = await prisma.scheduledShift.update({
       where: { id: idString },
       data: updateData,
+      include: {
+        user: {
+          select: {
+            companyId: true,
+          },
+        },
+      },
     });
 
-    return res.json(formatShiftForFrontend(updatedShift));
+    const formattedShift = formatShiftForFrontend(updatedShift);
+    
+    // Emit socket event to company room
+    const io = getIO();
+    io.to(`company:${updatedShift.user.companyId}`).emit("shift:updated", formattedShift);
+
+    return res.json(formattedShift);
   } catch (error) {
     console.error(error);
     return res.status(500).json({
@@ -174,6 +259,13 @@ export const deleteScheduledShift = async (req: AuthRequest, res: Response) => {
     // Check if shift exists
     const existingShift = await prisma.scheduledShift.findUnique({
       where: { id: idString },
+      include: {
+        user: {
+          select: {
+            companyId: true,
+          },
+        },
+      },
     });
 
     if (!existingShift) {
@@ -188,9 +280,15 @@ export const deleteScheduledShift = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: "Forbidden" });
     }
 
+    const companyId = existingShift.user.companyId;
+
     await prisma.scheduledShift.delete({
       where: { id: idString },
     });
+
+    // Emit socket event to company room
+    const io = getIO();
+    io.to(`company:${companyId}`).emit("shift:deleted", { id: idString });
 
     return res.status(204).send();
   } catch (error) {
@@ -233,14 +331,55 @@ export const publishDraftShifts = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    // Fetch updated shifts
+    // Fetch updated shifts with user information for email notifications
     const updatedShifts = await prisma.scheduledShift.findMany({
       where: {
         id: { in: shiftIds },
       },
+      include: {
+        user: {
+          select: {
+            id: true,
+            userName: true,
+            email: true,
+            companyId: true,
+          },
+        },
+      },
     });
 
     const formatted = updatedShifts.map(formatShiftForFrontend);
+    
+    // Emit socket events for each published shift
+    const io = getIO();
+    formatted.forEach((shift) => {
+      const shiftData = updatedShifts.find((s) => s.id === shift.id);
+      if (shiftData) {
+        io.to(`company:${shiftData.user.companyId}`).emit("shift:updated", shift);
+      }
+    });
+
+    // Send email notifications to users whose shifts were published
+    // Send emails in parallel for better performance
+    const emailPromises = updatedShifts.map((shift) => {
+      const shiftDate = shift.date.toISOString().split("T")[0];
+      return sendShiftPublishedEmail({
+        userName: shift.user.userName,
+        userEmail: shift.user.email,
+        shiftDate,
+        startTime: shift.startTime,
+        endTime: shift.endTime,
+        title: shift.title || undefined,
+        note: shift.note || undefined,
+        isDraft: false, // These are published shifts
+      });
+    });
+
+    // Don't await emails - send them asynchronously so API response isn't delayed
+    Promise.all(emailPromises).catch((error) => {
+      console.error("Error sending email notifications:", error);
+    });
+    
     res.json(formatted);
   } catch (error) {
     console.error(error);

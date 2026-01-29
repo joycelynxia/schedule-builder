@@ -34,6 +34,9 @@ model User {
 
   scheduledShifts ScheduledShift[]
   unavailabilityRules UnavailabilityRule[]
+  swapRequestsAsRequester ShiftSwapRequest[] @relation("Requester")
+  swapRequestsAsRequested ShiftSwapRequest[] @relation("RequestedUser")
+  coverBids CoverBid[] @relation("CoverBidder")
 }
 
 model ScheduledShift {
@@ -51,6 +54,8 @@ model ScheduledShift {
   note String?
 
   status ShiftStatus @default(DRAFT)
+
+  swapRequests ShiftSwapRequest[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -88,4 +93,55 @@ model UnavailabilityRule {
 enum RecurrenceFrequency {
   daily
   weekly
+}
+
+model ShiftSwapRequest {
+  id String @id @default(uuid())
+
+  shiftId String
+  shift ScheduledShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  requesterId String
+  requester User @relation("Requester", fields: [requesterId], references: [id])
+
+  requestedUserId String? // Optional: for swap requests (null for cover requests)
+  requestedUser User? @relation("RequestedUser", fields: [requestedUserId], references: [id])
+
+  status SwapRequestStatus @default(PENDING)
+
+  requestedUserApprovedAt DateTime? // For swaps: partner must agree before manager can approve
+
+  reason String? // Optional reason/message from requester
+
+  coverBids CoverBid[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CoverBid {
+  id String @id @default(uuid())
+
+  coverRequestId String
+  coverRequest ShiftSwapRequest @relation(fields: [coverRequestId], references: [id], onDelete: Cascade)
+
+  bidderId String
+  bidder User @relation("CoverBidder", fields: [bidderId], references: [id])
+
+  status CoverBidStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum CoverBidStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum SwapRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

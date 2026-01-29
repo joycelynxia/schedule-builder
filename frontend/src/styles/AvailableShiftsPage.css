@@ -1,0 +1,120 @@
+.available-shifts-page {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--background, #f5f5f5);
+}
+
+.available-shifts-content {
+  flex: 1;
+  padding: 2rem;
+  margin-left: 20vw;
+  min-width: 0;
+}
+
+.available-shifts-content h1 {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-primary);
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.subtitle {
+  margin: 0 0 2rem 0;
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.loading,
+.empty {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary);
+}
+
+.cover-requests-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cover-request-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.25rem;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.cover-request-card .shift-info {
+  flex: 1;
+}
+
+.cover-request-card .shift-info h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cover-request-card .shift-info p {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.request-cover-btn {
+  flex-shrink: 0;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  border: none;
+  background: var(--primary-color);
+  color: white;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.request-cover-btn:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.request-cover-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.own-label,
+.requested-label {
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.requested-label {
+  font-weight: 500;
+  text-align: center;
+}
+
+@media (max-width: 1024px) {
+  .available-shifts-content {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .cover-request-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .request-cover-btn {
+    width: 100%;
+  }
+}

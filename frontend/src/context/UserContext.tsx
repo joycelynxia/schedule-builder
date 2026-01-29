@@ -1,5 +1,5 @@
 // contexts/UserContext.tsx
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import type {User} from "../types/models"
 
 interface UserContextType {
@@ -7,6 +7,7 @@ interface UserContextType {
   setUser: (user: User | null) => void;
   loading: boolean;
   logout: () => void;
+  refetchUser: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -15,44 +16,45 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        setLoading(false);
-        return;
-      }
+  const refetchUser = useCallback(async () => {
+    const token = localStorage.getItem('token');
 
-      const API_BASE = import.meta.env.VITE_API_BASE_URL;
+    if (!token) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
 
-      try {
-        const response = await fetch(`${API_BASE}/auth/me`, {
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          const userData = await response.json();
-          setUser(userData);
-        } else {
-          // Token is invalid or expired
-          localStorage.removeItem('token');
-          setUser(null);
+    setLoading(true);
+    const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
+    try {
+      const response = await fetch(`${API_BASE}/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-      } catch (error) {
-        console.error('Failed to fetch user:', error);
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+      } else {
         localStorage.removeItem('token');
         setUser(null);
-      } finally {
-        setLoading(false);
       }
-    };
-
-    fetchUser();
+    } catch (error) {
+      console.error('Failed to fetch user:', error);
+      localStorage.removeItem('token');
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    refetchUser();
+  }, [refetchUser]);
 
   const logout = () => {
     localStorage.removeItem('token');
@@ -60,7 +62,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <UserContext.Provider value={{ user, setUser, loading, logout }}>
+    <UserContext.Provider value={{ user, setUser, loading, logout, refetchUser }}>
       {children}
     </UserContext.Provider>
   );

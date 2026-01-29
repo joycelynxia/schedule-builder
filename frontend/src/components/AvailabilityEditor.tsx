@@ -9,6 +9,8 @@ interface Props {
   onDelete?: () => void;
   date: string;
   editingRule?: UnavailabilityRule;
+  initialStartTime?: string | null;
+  initialEndTime?: string | null;
 }
 
 const daysOfWeek: DayOfWeek[] = [
@@ -21,11 +23,11 @@ const daysOfWeek: DayOfWeek[] = [
   "Sat",
 ];
 
-function AvailabilityEditor({ onCancel, onAdd, onUpdate, onDelete, date, editingRule }: Props) {
+function AvailabilityEditor({ onCancel, onAdd, onUpdate, onDelete, date, editingRule, initialStartTime, initialEndTime }: Props) {
   // const [startDate, setStartDate] = useState<string>(date);
   const [endDate, setEndDate] = useState<string>(date);
-  const [startTime, setStartTime] = useState<string>("09:00");
-  const [endTime, setEndTime] = useState<string>("17:00");
+  const [startTime, setStartTime] = useState<string>(initialStartTime || "09:00");
+  const [endTime, setEndTime] = useState<string>(initialEndTime || "17:00");
   const [note, setNote] = useState<string>("");
   const [isAllDay, setIsAllDay] = useState<boolean>(false);
   const [isRepeat, setIsRepeat] = useState<boolean>(false);
@@ -52,8 +54,16 @@ function AvailabilityEditor({ onCancel, onAdd, onUpdate, onDelete, date, editing
           setSelectedDays(editingRule.recurrence.daysOfWeek);
         }
       }
+    } else if (date) {
+      // When creating new rule, use initial times if provided (from drag selection)
+      if (initialStartTime) {
+        setStartTime(initialStartTime);
+      }
+      if (initialEndTime) {
+        setEndTime(initialEndTime);
+      }
     }
-  }, [editingRule]);
+  }, [editingRule, date, initialStartTime, initialEndTime]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -22,13 +22,19 @@
   overflow: hidden;
 }
 
+/* When sidebar is hidden (tablet and smaller), remove left margin */
+@media (max-width: 1024px) {
+  .main-content {
+    margin-left: 0;
+  }
+}
+
 @media (max-width: 768px) {
   .app-container {
     flex-direction: column;
   }
   
   .main-content {
-    margin-left: 0;
     margin-top: 56px; /* Height of mobile navbar */
   }
 }

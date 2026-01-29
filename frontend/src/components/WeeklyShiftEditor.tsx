@@ -13,6 +13,8 @@ interface Props {
   onCancelShift: () => void;
   date: string;
   editingShift?: Shift | null;
+  initialStartTime?: string | null;
+  initialEndTime?: string | null;
 }
 
 interface OptionType {
@@ -36,10 +38,12 @@ function WeeklyShiftEditor({
   onCancelShift,
   date,
   editingShift,
+  initialStartTime,
+  initialEndTime,
 }: Props) {
   const isEditing = !!editingShift;
-  const [startTime, setStartTime] = useState<string>("09:00");
-  const [endTime, setEndTime] = useState<string>("17:00");
+  const [startTime, setStartTime] = useState<string>(initialStartTime || "09:00");
+  const [endTime, setEndTime] = useState<string>(initialEndTime || "17:00");
   const [users, setUsers] = useState<UserWithAvailability[]>([]);
   const [employeeOptions, setEmployeeOptions] = useState<OptionType[]>([]);
   const [selectedEmployees, setSelectedEmployees] = useState<
@@ -211,14 +215,15 @@ function WeeklyShiftEditor({
         setNote(editingShift.note || "");
       } else if (!editingShift && date) {
         // Reset form when creating new shift (only when modal opens)
-        setStartTime("09:00");
-        setEndTime("17:00");
+        // Use initial times if provided (from drag selection), otherwise defaults
+        setStartTime(initialStartTime || "09:00");
+        setEndTime(initialEndTime || "17:00");
         setNote("");
         setSelectedEmployees([]);
       }
       prevEditingShiftIdRef.current = currentShiftId;
     }
-  }, [editingShift, date]);
+  }, [editingShift, date, initialStartTime, initialEndTime]);
 
   // Set selected employee when editing (separate effect to avoid resetting times)
   useEffect(() => {
@@ -257,6 +262,11 @@ function WeeklyShiftEditor({
 
         if (status) {
           payload.status = status;
+        }
+
+        // Include userId when manager reassigns the shift
+        if (selectedEmployees.length > 0) {
+          payload.userId = selectedEmployees[0].value;
         }
 
         const res = await apiFetch(`/api/shifts/${editingShift.id}`, {
@@ -429,14 +439,16 @@ function WeeklyShiftEditor({
                 setSelectedEmployees(newValue);
               } else if (!newValue) {
                 setSelectedEmployees([]);
+              } else {
+                setSelectedEmployees([newValue]);
               }
             }}
-            isDisabled={isEditing}
+            isDisabled={isEditing && !user?.isManager}
             required
             formatOptionLabel={({ label, isAvailable }) => (
               <div>
                 <div>{label}</div>
-                {!isEditing && (
+                {(!isEditing || user?.isManager) && (
                   <div
                     style={{
                       fontSize: "0.85rem",

@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/db";
 import { User } from "@prisma/client";
+import { getIO } from "../config/socket";
 
 interface AuthRequest extends Request {
   user?: Omit<User, "password">;
@@ -131,9 +132,22 @@ export const createUnavailabilityRule = async (
 
         allDay: allDay ?? false,
       },
+      include: {
+        user: {
+          select: {
+            companyId: true,
+          },
+        },
+      },
     });
 
-    return res.status(201).json(formatRuleForFrontend(rule));
+    const formattedRule = formatRuleForFrontend(rule);
+    
+    // Emit socket event to company room
+    const io = getIO();
+    io.to(`company:${rule.user.companyId}`).emit("unavailabilityRule:created", formattedRule);
+
+    return res.status(201).json(formattedRule);
   } catch (error) {
     console.error(error);
     return res.status(500).json({
@@ -309,9 +323,22 @@ export const updateUnavailabilityRule = async (
     const updatedRule = await prisma.unavailabilityRule.update({
       where: { id: idString },
       data: updateData,
+      include: {
+        user: {
+          select: {
+            companyId: true,
+          },
+        },
+      },
     });
 
-    return res.json(formatRuleForFrontend(updatedRule));
+    const formattedRule = formatRuleForFrontend(updatedRule);
+    
+    // Emit socket event to company room
+    const io = getIO();
+    io.to(`company:${updatedRule.user.companyId}`).emit("unavailabilityRule:updated", formattedRule);
+
+    return res.json(formattedRule);
   } catch (error) {
     console.error(error);
     return res.status(500).json({
@@ -339,6 +366,13 @@ export const deleteUnavailabilityRule = async (
     // Check if rule exists and user owns it (or is manager)
     const existingRule = await prisma.unavailabilityRule.findUnique({
       where: { id: idString },
+      include: {
+        user: {
+          select: {
+            companyId: true,
+          },
+        },
+      },
     });
 
     if (!existingRule) {
@@ -349,9 +383,15 @@ export const deleteUnavailabilityRule = async (
       return res.status(403).json({ error: "Forbidden" });
     }
 
+    const companyId = existingRule.user.companyId;
+
     await prisma.unavailabilityRule.delete({
       where: { id: idString },
     });
+
+    // Emit socket event to company room
+    const io = getIO();
+    io.to(`company:${companyId}`).emit("unavailabilityRule:deleted", { id: idString });
 
     return res.status(204).send();
   } catch (error) {

@@ -25,16 +25,18 @@
 // export default Navbar;
 
 import { useState } from "react";
+import { NavLink } from "react-router-dom";
 import "../styles/Navbar.css";
 
 function Navbar() {
   const [isExpanded, setIsExpanded] = useState(false);
+  const linkClass = ({ isActive }: { isActive: boolean }) => (isActive ? "active" : "");
 
   return (
     <>
       {/* Hamburger button - only visible when collapsed */}
       <button 
-        className="sidebar-toggle"
+        className={`sidebar-toggle ${isExpanded ? 'expanded' : ''}`}
         onClick={() => setIsExpanded(!isExpanded)}
         aria-label="Toggle sidebar"
       >
@@ -58,12 +60,51 @@ function Navbar() {
           </a>
         </div>
         <div className="navbar-center">
-          <a href="/schedule" onClick={() => setIsExpanded(false)}>Schedule</a>
-          <a href="/availability" onClick={() => setIsExpanded(false)}>Availability</a>
-          <a href="/team" onClick={() => setIsExpanded(false)}>Team</a>
+          <NavLink 
+            to="/schedule" 
+            onClick={() => setIsExpanded(false)}
+            className={linkClass}
+          >
+            Schedule
+          </NavLink>
+          <NavLink 
+            to="/availability" 
+            onClick={() => setIsExpanded(false)}
+            className={linkClass}
+          >
+            My Availability
+          </NavLink>
+
+          <NavLink 
+            to="/swap-requests" 
+            onClick={() => setIsExpanded(false)}
+            className={linkClass}
+          >
+            Swap Requests
+          </NavLink>
+          <NavLink 
+            to="/available-shifts" 
+            onClick={() => setIsExpanded(false)}
+            className={linkClass}
+          >
+            Available Shifts
+          </NavLink>
+          <NavLink 
+            to="/team" 
+            onClick={() => setIsExpanded(false)}
+            className={linkClass}
+          >
+            Team
+          </NavLink>
         </div>
         <div className="navbar-right">
-          <a href="/account" onClick={() => setIsExpanded(false)}>My Account</a>
+          <NavLink 
+            to="/account" 
+            onClick={() => setIsExpanded(false)}
+            className={linkClass}
+          >
+            My Account
+          </NavLink>
         </div>
       </nav>
     </>

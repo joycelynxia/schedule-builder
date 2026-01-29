@@ -1,10 +1,13 @@
 import { useState } from "react";
 import "../styles/LoginPage.css";
 import { useNavigate } from "react-router-dom";
+import { useUser } from "../context/UserContext";
+
 function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const nav = useNavigate();
+  const { refetchUser } = useUser();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +31,7 @@ function LoginPage() {
       }
 
       localStorage.setItem("token", data.token);
+      await refetchUser();
       nav("/schedule");
     } catch (err: any) {
       alert(err.message);

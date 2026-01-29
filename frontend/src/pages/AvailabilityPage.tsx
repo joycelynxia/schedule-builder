@@ -1,5 +1,6 @@
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction"; // needed for dateClick/select
 import "../styles/Calendar.css";
 import AvailabilityEditor from "../components/AvailabilityEditor";
@@ -10,12 +11,14 @@ import type {
   EventHoveringArg,
   EventInput,
   EventClickArg,
+  DateSelectArg,
 } from "@fullcalendar/core";
 import { combineDateAndTime, toDateOnly } from "../utils/stringHelper";
 import ToolTip from "../components/ToolTip";
 import type { Dictionary } from "@fullcalendar/core/internal";
 import { apiFetch } from "../api";
 import { useUser } from "../context/UserContext";
+import { useSocket } from "../context/SocketContext";
 
 function AvailabilityPage() {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -39,8 +42,12 @@ function AvailabilityPage() {
   );
   const [showConflictDialog, setShowConflictDialog] = useState<boolean>(false);
   const [rulesLoading, setRulesLoading] = useState<boolean>(true);
+  const [currentView, setCurrentView] = useState<string>("dayGridMonth");
+  const [selectedStartTime, setSelectedStartTime] = useState<string | null>(null);
+  const [selectedEndTime, setSelectedEndTime] = useState<string | null>(null);
 
   const { user, loading } = useUser();
+  const { socket } = useSocket();
 
   // Fetch current user and existing rules on mount
   useEffect(() => {
@@ -68,11 +75,81 @@ function AvailabilityPage() {
     fetchRules();
   }, [user, loading]);
 
+  // Listen for real-time unavailability rule updates via socket
+  useEffect(() => {
+    if (!socket || !user) return;
+
+    const handleRuleCreated = (rule: UnavailabilityRule) => {
+      // Only add if it belongs to the current user (or user is manager)
+      // and not already in the list (avoid duplicates from own actions)
+      if (rule.userId === user.id || user.isManager) {
+        setUnavailabilityRules((prev) => {
+          if (prev.some((r) => r.id === rule.id)) return prev;
+          return [...prev, rule];
+        });
+      }
+    };
+
+    const handleRuleUpdated = (rule: UnavailabilityRule) => {
+      // Only update if it belongs to the current user (or user is manager)
+      if (rule.userId === user.id || user.isManager) {
+        setUnavailabilityRules((prev) =>
+          prev.map((r) => (r.id === rule.id ? rule : r))
+        );
+      }
+    };
+
+    const handleRuleDeleted = (data: { id: string }) => {
+      // Remove from list
+      setUnavailabilityRules((prev) => prev.filter((r) => r.id !== data.id));
+    };
+
+    socket.on("unavailabilityRule:created", handleRuleCreated);
+    socket.on("unavailabilityRule:updated", handleRuleUpdated);
+    socket.on("unavailabilityRule:deleted", handleRuleDeleted);
+
+    return () => {
+      socket.off("unavailabilityRule:created", handleRuleCreated);
+      socket.off("unavailabilityRule:updated", handleRuleUpdated);
+      socket.off("unavailabilityRule:deleted", handleRuleDeleted);
+    };
+  }, [socket, user]);
+
   const handleDateClick = (info: string) => {
     console.log(info);
     setDate(info);
+    setSelectedStartTime(null); // Clear selected times for date click
+    setSelectedEndTime(null);
     setEditingRule(null); // Clear editing rule when creating new
     setIsModalOpen(true);
+  };
+
+  // Handle drag selection in week view to create unavailability rules
+  const handleSelect = (selectInfo: DateSelectArg) => {
+    // Only allow selection in week view
+    if (selectInfo.view.type !== "timeGridWeek") {
+      selectInfo.view.calendar.unselect();
+      return;
+    }
+
+    const start = selectInfo.start;
+    const end = selectInfo.end;
+    
+    // Extract date and times
+    const dateStr = start.toISOString().split("T")[0];
+    const startTime = start.toTimeString().slice(0, 5); // HH:MM format
+    const endTime = end.toTimeString().slice(0, 5); // HH:MM format
+
+    setDate(dateStr);
+    setSelectedStartTime(startTime);
+    setSelectedEndTime(endTime);
+    setEditingRule(null);
+    
+    // Open modal
+    setIsModalOpen(true);
+    
+    // Unselect the selection
+    selectInfo.view.calendar.unselect();
   };
 
   const handleEventClick = (info: EventClickArg) => {
@@ -560,12 +637,24 @@ function AvailabilityPage() {
           onCancel={() => {
             setIsModalOpen(false);
             setEditingRule(null);
+            setSelectedStartTime(null);
+            setSelectedEndTime(null);
           }}
-          onAdd={handleAdd}
-          onUpdate={editingRule ? handleUpdate : undefined}
+          onAdd={(rule) => {
+            handleAdd(rule);
+            setSelectedStartTime(null);
+            setSelectedEndTime(null);
+          }}
+          onUpdate={editingRule ? (rule) => {
+            handleUpdate(rule);
+            setSelectedStartTime(null);
+            setSelectedEndTime(null);
+          } : undefined}
           onDelete={editingRule ? handleDelete : undefined}
           date={date}
           editingRule={editingRule || undefined}
+          initialStartTime={selectedStartTime}
+          initialEndTime={selectedEndTime}
         />
       )}
       {showConflictDialog && (
@@ -577,12 +666,22 @@ function AvailabilityPage() {
       )}
       <div className="calendar-container">
         <FullCalendar
-          plugins={[dayGridPlugin, interactionPlugin]}
+          plugins={[dayGridPlugin, interactionPlugin, timeGridPlugin]}
           initialView="dayGridMonth"
+          headerToolbar={{
+            start: 'prev,next today',
+            center: 'title',
+            end: 'dayGridMonth,timeGridWeek',
+          }}
           events={events}
           aspectRatio={1}
           contentHeight={500}
+          selectable={currentView === "timeGridWeek"}
+          selectMirror={true}
+          selectOverlap={false}
           dateClick={(info) => handleDateClick(info.dateStr)}
+          select={handleSelect}
+          viewDidMount={(view) => setCurrentView(view.view.type)}
           datesSet={(info) => {
             (console.log(info),
               setCalendarStart(info.startStr),

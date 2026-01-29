@@ -11,6 +11,8 @@ import scheduledShiftRoutes from "./routes/scheduledShifts";
 import authRoutes from "./routes/authRoutes";
 import userRoutes from "./routes/userRoutes";
 import companyRoutes from "./routes/companyRoutes";
+import shiftSwapRoutes from "./routes/shiftSwapRoutes";
+import coverBidRoutes from "./routes/coverBidRoutes";
 
 const app = express();
 
@@ -23,7 +25,9 @@ app.use("/api/unavailabilityRules", unavailabilityRuleRoutes);
 app.use("/api/shifts", scheduledShiftRoutes);
 app.use("/auth", authRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/company", companyRoutes)
+app.use("/api/company", companyRoutes);
+app.use("/api/swap-requests", shiftSwapRoutes);
+app.use("/api/cover-bids", coverBidRoutes);
 
 // ---- Health check ----
 app.get("/api/health", (req: Request, res: Response) => {
