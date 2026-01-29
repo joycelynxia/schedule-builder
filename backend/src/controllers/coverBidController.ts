@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { prisma } from "../config/db";
 import { User, $Enums } from "@prisma/client";
 import { getIO } from "../config/socket";
+import { sendCoverSwapApprovedEmail } from "../utils/email";
 
 interface AuthRequest extends Request {
   user?: Omit<User, "password">;
@@ -104,6 +105,32 @@ export const createCoverBid = async (req: AuthRequest, res: Response) => {
             isPublished: shift.status === "PUBLISHED",
             extendedProps: { isPublished: shift.status === "PUBLISHED", status: shift.status },
           });
+          const reqUser = updated.coverRequest.requester;
+          const bidder = updated.bidder;
+          if (reqUser?.userName && reqUser?.email && bidder?.userName && bidder?.email) {
+            sendCoverSwapApprovedEmail({
+              userName: reqUser.userName,
+              userEmail: reqUser.email,
+              type: "cover",
+              role: "requester",
+              shiftDate: dateStr,
+              startTime: shift.startTime,
+              endTime: shift.endTime,
+              note: shift.note,
+              otherPartyName: bidder.userName,
+            }).catch(() => {});
+            sendCoverSwapApprovedEmail({
+              userName: bidder.userName,
+              userEmail: bidder.email,
+              type: "cover",
+              role: "assignee",
+              shiftDate: dateStr,
+              startTime: shift.startTime,
+              endTime: shift.endTime,
+              note: shift.note,
+              otherPartyName: reqUser.userName,
+            }).catch(() => {});
+          }
         }
         return res.status(201).json(updated);
       }
@@ -257,6 +284,32 @@ export const approveCoverBid = async (req: AuthRequest, res: Response) => {
         isPublished: shift.status === "PUBLISHED",
         extendedProps: { isPublished: shift.status === "PUBLISHED", status: shift.status },
       });
+      const reqUser = updated?.coverRequest.requester;
+      const bidderUser = updated?.bidder;
+      if (reqUser?.userName && reqUser?.email && bidderUser?.userName && bidderUser?.email) {
+        sendCoverSwapApprovedEmail({
+          userName: reqUser.userName,
+          userEmail: reqUser.email,
+          type: "cover",
+          role: "requester",
+          shiftDate: dateStr,
+          startTime: shift.startTime,
+          endTime: shift.endTime,
+          note: shift.note,
+          otherPartyName: bidderUser.userName,
+        }).catch(() => {});
+        sendCoverSwapApprovedEmail({
+          userName: bidderUser.userName,
+          userEmail: bidderUser.email,
+          type: "cover",
+          role: "assignee",
+          shiftDate: dateStr,
+          startTime: shift.startTime,
+          endTime: shift.endTime,
+          note: shift.note,
+          otherPartyName: reqUser.userName,
+        }).catch(() => {});
+      }
     }
 
     return res.json(updated);

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { prisma } from "../config/db";
 import { User, $Enums } from "@prisma/client";
 import { getIO } from "../config/socket";
+import { sendCoverSwapApprovedEmail } from "../utils/email";
 
 interface AuthRequest extends Request {
   user?: Omit<User, "password">;
@@ -275,6 +276,32 @@ export const agreeSwapByPartner = async (req: AuthRequest, res: Response) => {
             isPublished: updatedShift.status === "PUBLISHED",
             extendedProps: { isPublished: updatedShift.status === "PUBLISHED", status: updatedShift.status },
           });
+          const reqUser = approved.requester;
+          const reqdUser = approved.requestedUser;
+          if (reqUser?.userName && reqUser?.email && reqdUser?.userName && reqdUser?.email) {
+            sendCoverSwapApprovedEmail({
+              userName: reqUser.userName,
+              userEmail: reqUser.email,
+              type: "swap",
+              role: "requester",
+              shiftDate: dateStr,
+              startTime: updatedShift.startTime,
+              endTime: updatedShift.endTime,
+              note: updatedShift.note,
+              otherPartyName: reqdUser.userName,
+            }).catch(() => {});
+            sendCoverSwapApprovedEmail({
+              userName: reqdUser.userName,
+              userEmail: reqdUser.email,
+              type: "swap",
+              role: "assignee",
+              shiftDate: dateStr,
+              startTime: updatedShift.startTime,
+              endTime: updatedShift.endTime,
+              note: updatedShift.note,
+              otherPartyName: reqUser.userName,
+            }).catch(() => {});
+          }
         }
         return res.json(approved);
       }
@@ -422,6 +449,32 @@ export const approveSwapRequest = async (req: AuthRequest, res: Response) => {
         isPublished: updatedShift.status === "PUBLISHED",
         extendedProps: { isPublished: updatedShift.status === "PUBLISHED", status: updatedShift.status },
       });
+      const reqUser = updatedRequest.requester;
+      const reqdUser = updatedRequest.requestedUser;
+      if (reqUser?.userName && reqUser?.email && reqdUser?.userName && reqdUser?.email) {
+        sendCoverSwapApprovedEmail({
+          userName: reqUser.userName,
+          userEmail: reqUser.email,
+          type: "swap",
+          role: "requester",
+          shiftDate: dateStr,
+          startTime: updatedShift.startTime,
+          endTime: updatedShift.endTime,
+          note: updatedShift.note,
+          otherPartyName: reqdUser.userName,
+        }).catch(() => {});
+        sendCoverSwapApprovedEmail({
+          userName: reqdUser.userName,
+          userEmail: reqdUser.email,
+          type: "swap",
+          role: "assignee",
+          shiftDate: dateStr,
+          startTime: updatedShift.startTime,
+          endTime: updatedShift.endTime,
+          note: updatedShift.note,
+          otherPartyName: reqUser.userName,
+        }).catch(() => {});
+      }
     }
 
     return res.json(updatedRequest);

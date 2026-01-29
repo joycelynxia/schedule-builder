@@ -35,9 +35,6 @@ Account
 - notifications for schedule updates
 - manager: add new users 
 
-Login
-- id (last 4 digit of number) and password 
-- default password is SobolPlainview -> reset after logging in 
 
 ---- data types ----
 schedule object frontend
