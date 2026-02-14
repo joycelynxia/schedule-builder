@@ -11,7 +11,7 @@ import {
 } from "../api";
 import type { ShiftSwapRequest, CoverBid } from "../types/models";
 import { useUser } from "../context/UserContext";
-import { useSocket } from "../context/useSocket";
+import { useSocket } from "../context/SocketContext";
 import "../styles/SwapRequestsPage.css";
 
 function SwapRequestsPage() {
@@ -250,6 +250,32 @@ function SwapRequestsPage() {
         )}
       </div>
       <div className="swap-requests-content content-card">
+        <div className="filter-tabs">
+          <button
+            className={filter === "all" ? "active" : ""}
+            onClick={() => setFilter("all")}
+          >
+            All ({swapRequests.length})
+          </button>
+          <button
+            className={filter === "PENDING" ? "active" : ""}
+            onClick={() => setFilter("PENDING")}
+          >
+            Pending ({pendingRequests.length})
+          </button>
+          <button
+            className={filter === "APPROVED" ? "active" : ""}
+            onClick={() => setFilter("APPROVED")}
+          >
+            Approved ({swapRequests.filter((r) => r.status === "APPROVED").length})
+          </button>
+          <button
+            className={filter === "REJECTED" ? "active" : ""}
+            onClick={() => setFilter("REJECTED")}
+          >
+            Rejected ({swapRequests.filter((r) => r.status === "REJECTED").length})
+          </button>
+        </div>
         {loading ? (
           <div className="loading-state">Loading swap requests…</div>
         ) : filteredRequests.length === 0 ? (
@@ -258,32 +284,7 @@ function SwapRequestsPage() {
           </div>
         ) : (
           <div className="requests-list">
-            <div className="filter-tabs">
-              <button
-                className={filter === "all" ? "active" : ""}
-                onClick={() => setFilter("all")}
-              >
-                All ({swapRequests.length})
-              </button>
-              <button
-                className={filter === "PENDING" ? "active" : ""}
-                onClick={() => setFilter("PENDING")}
-              >
-                Pending ({pendingRequests.length})
-              </button>
-              <button
-                className={filter === "APPROVED" ? "active" : ""}
-                onClick={() => setFilter("APPROVED")}
-              >
-                Approved ({swapRequests.filter((r) => r.status === "APPROVED").length})
-              </button>
-              <button
-                className={filter === "REJECTED" ? "active" : ""}
-                onClick={() => setFilter("REJECTED")}
-              >
-                Rejected ({swapRequests.filter((r) => r.status === "REJECTED").length})
-              </button>
-            </div>
+
             {filteredRequests.map((request) => (
               <div key={request.id} className="swap-request-card">
                 <div className="request-header">
