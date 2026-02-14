@@ -11,7 +11,8 @@ import SwapRequestsPage from "./pages/SwapRequestsPage";
 import AvailableShiftsPage from "./pages/AvailableShiftsPage";
 import { UserProvider } from "./context/UserContext";
 import { SocketProvider } from "./context/SocketContext";
-import "./App.css"
+import "./App.css";
+import "./styles/PageLayout.css";
 function App() {
   const location = useLocation();
   const hideHeaderOn = ["/", "/register"];

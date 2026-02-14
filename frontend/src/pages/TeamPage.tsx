@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import Navbar from "../components/Navbar";
 import type { User } from "../types/models";
 import { apiFetch } from "../api";
 import { useUser } from "../context/UserContext";
@@ -42,24 +41,28 @@ function TeamPage() {
   };
 
   return (
-    <div className="team-page">
-      <Navbar />
+    <div className="page team-page">
+      <div className="page-header">
+        <h1 className="page-title">Team</h1>
+        <p className="page-subtitle">Manage your company invite code and view team members.</p>
+      </div>
 
-      <div className="invite-code">
-        <label>Company Invite Code</label>
+      <div className="content-card invite-code-section">
+        <label className="section-label">Company Invite Code</label>
         <div className="invite-code-input">
           <input value={inviteCode} readOnly />
-          <button onClick={() => copyToClipboard(inviteCode)}>
+          <button className="btn-primary" onClick={() => copyToClipboard(inviteCode)}>
             {copied ? "Copied!" : "Copy"}
           </button>
         </div>
       </div>
 
-      <label>Current Team</label>
-      {employeesLoading ? (
-        <span>Loading team members...</span>
-      ) : (
-        <div className="table-container">
+      <div className="team-section">
+        <label className="section-label">Current Team</label>
+        {employeesLoading ? (
+          <div className="loading-state">Loading team members…</div>
+        ) : (
+          <div className="content-card table-container">
           <table className="employee-table">
             <thead>
               <tr>
@@ -69,7 +72,7 @@ function TeamPage() {
               </tr>
             </thead>
             <tbody>
-              {employees.map((emp) => (
+              {employees?.map((emp) => (
                 <tr key={emp.id}>
                   <td data-label="Name">{emp.userName}</td>
                   <td data-label="Email">{emp.email}</td>
@@ -81,7 +84,8 @@ function TeamPage() {
             </tbody>
           </table>
         </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

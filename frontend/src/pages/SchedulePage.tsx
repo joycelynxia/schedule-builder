@@ -12,7 +12,7 @@ import ToolTip from "../components/ToolTip";
 import type { EventHoveringArg, DateSelectArg } from "@fullcalendar/core/index.js";
 import { apiFetch } from "../api";
 import { useUser } from "../context/UserContext";
-import { useSocket } from "../context/SocketContext";
+import { useSocket } from "../context/useSocket";
 import SwapRequestDialog from "../components/SwapRequestDialog";
 import CoverRequestDialog from "../components/CoverRequestDialog";
 
@@ -138,12 +138,18 @@ function SchedulePage() {
   const addShift = (shift: Shift) => {
     setIsModalOpen(false);
     setEditingShift(null);
-    // Shift is already saved to backend by WeeklyShiftEditor
-    // Just update local state
+    // Shift is already saved to backend by WeeklyShiftEditor.
+    // Avoid duplicates: both addShift (API callback) and shift:created (socket) add shifts.
     if (shift.isPublished) {
-      setPublishedShifts((prev) => [...prev, shift]);
+      setPublishedShifts((prev) => {
+        if (prev.some((s) => s.id === shift.id)) return prev;
+        return [...prev, shift];
+      });
     } else {
-      setDraftShifts((prev) => [...prev, shift]);
+      setDraftShifts((prev) => {
+        if (prev.some((s) => s.id === shift.id)) return prev;
+        return [...prev, shift];
+      });
     }
   };
 
@@ -388,28 +394,28 @@ function SchedulePage() {
   // Show loading state while user or shifts are loading
   if (loading || shiftsLoading) {
     return (
-      <div className="page-container dashboard-container">
-        <div style={{ textAlign: 'center', padding: '50px' }}>
-          <p>Loading...</p>
-        </div>
+      <div className="page page-container dashboard-container">
+        <div className="loading-state">Loading…</div>
       </div>
     );
   }
 
-  // Optional: Handle case where user is not logged in
   if (!user) {
     return (
-      <div className="page-container dashboard-container">
-        <div style={{ textAlign: 'center', padding: '50px' }}>
-          <p>Please log in to view schedules.</p>
-        </div>
+      <div className="page page-container dashboard-container">
+        <div className="empty-state">Please log in to view schedules.</div>
       </div>
     );
   }
 
   return (
-    <div className="page-container dashboard-container">
-      <div>
+    <div className="page page-container dashboard-container">
+      <div className="page-header swap-requests-header">
+        <div>
+          <h1 className="page-title">Schedule</h1>
+        </div>
+      </div>
+      <div className="schedule-content">
         <div className="modal">
           {isModalOpen && (
             <WeeklyShiftEditor
@@ -439,23 +445,27 @@ function SchedulePage() {
           )}
         </div>
         <div className="schedule-toolbar">
-          <div className="shift-view-toggle">
-            <button
-              type="button"
-              className={shiftView === "all" ? "active" : ""}
-              onClick={() => setShiftView("all")}
-              aria-pressed={shiftView === "all"}
-            >
-              All shifts
-            </button>
-            <button
-              type="button"
-              className={shiftView === "mine" ? "active" : ""}
-              onClick={() => setShiftView("mine")}
-              aria-pressed={shiftView === "mine"}
-            >
-              My shifts
-            </button>
+          <div className="shift-view-toggle" role="tablist" aria-label="Shift view">
+            <span className={`shift-view-option ${shiftView === "all" ? "active" : ""}`}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={shiftView === "all"}
+                onClick={() => setShiftView("all")}
+              >
+                All shifts
+              </button>
+            </span>
+            <span className={`shift-view-option ${shiftView === "mine" ? "active" : ""}`}>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={shiftView === "mine"}
+                onClick={() => setShiftView("mine")}
+              >
+                My shifts
+              </button>
+            </span>
           </div>
           {user?.isManager && draftShifts.length > 0 && (
             <button onClick={handlePublishClick} className="bulk-edit-btn">

@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import Navbar from "../components/Navbar";
 import {
   getAllSwapRequests,
   approveSwapRequest,
@@ -12,7 +11,7 @@ import {
 } from "../api";
 import type { ShiftSwapRequest, CoverBid } from "../types/models";
 import { useUser } from "../context/UserContext";
-import { useSocket } from "../context/SocketContext";
+import { useSocket } from "../context/useSocket";
 import "../styles/SwapRequestsPage.css";
 
 function SwapRequestsPage() {
@@ -238,53 +237,53 @@ function SwapRequestsPage() {
     filter === "all" ? swapRequests : swapRequests.filter((r) => r.status === filter);
 
   return (
-    <div className="swap-requests-page">
-      <Navbar />
-      <div className="swap-requests-content">
-        <div className="page-header">
-          <h1>Shift Swap Requests</h1>
-          {user?.isManager && pendingRequests.length > 0 && (
-            <div className="pending-badge">
-              {pendingRequests.length} pending request{pendingRequests.length !== 1 ? "s" : ""}
-            </div>
-          )}
+    <div className="page swap-requests-page">
+      <div className="page-header swap-requests-header">
+        <div>
+          <h1 className="page-title">Shift Swap Requests</h1>
+          <p className="page-subtitle">View and manage swap or cover requests.</p>
         </div>
-
-        <div className="filter-tabs">
-          <button
-            className={filter === "all" ? "active" : ""}
-            onClick={() => setFilter("all")}
-          >
-            All ({swapRequests.length})
-          </button>
-          <button
-            className={filter === "PENDING" ? "active" : ""}
-            onClick={() => setFilter("PENDING")}
-          >
-            Pending ({pendingRequests.length})
-          </button>
-          <button
-            className={filter === "APPROVED" ? "active" : ""}
-            onClick={() => setFilter("APPROVED")}
-          >
-            Approved ({swapRequests.filter((r) => r.status === "APPROVED").length})
-          </button>
-          <button
-            className={filter === "REJECTED" ? "active" : ""}
-            onClick={() => setFilter("REJECTED")}
-          >
-            Rejected ({swapRequests.filter((r) => r.status === "REJECTED").length})
-          </button>
-        </div>
-
+        {user?.isManager && pendingRequests.length > 0 && (
+          <div className="pending-badge">
+            {pendingRequests.length} pending request{pendingRequests.length !== 1 ? "s" : ""}
+          </div>
+        )}
+      </div>
+      <div className="swap-requests-content content-card">
         {loading ? (
-          <div className="loading">Loading swap requests...</div>
+          <div className="loading-state">Loading swap requests…</div>
         ) : filteredRequests.length === 0 ? (
           <div className="empty-state">
             <p>No swap requests found.</p>
           </div>
         ) : (
           <div className="requests-list">
+            <div className="filter-tabs">
+              <button
+                className={filter === "all" ? "active" : ""}
+                onClick={() => setFilter("all")}
+              >
+                All ({swapRequests.length})
+              </button>
+              <button
+                className={filter === "PENDING" ? "active" : ""}
+                onClick={() => setFilter("PENDING")}
+              >
+                Pending ({pendingRequests.length})
+              </button>
+              <button
+                className={filter === "APPROVED" ? "active" : ""}
+                onClick={() => setFilter("APPROVED")}
+              >
+                Approved ({swapRequests.filter((r) => r.status === "APPROVED").length})
+              </button>
+              <button
+                className={filter === "REJECTED" ? "active" : ""}
+                onClick={() => setFilter("REJECTED")}
+              >
+                Rejected ({swapRequests.filter((r) => r.status === "REJECTED").length})
+              </button>
+            </div>
             {filteredRequests.map((request) => (
               <div key={request.id} className="swap-request-card">
                 <div className="request-header">

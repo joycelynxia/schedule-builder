@@ -18,7 +18,7 @@ import ToolTip from "../components/ToolTip";
 import type { Dictionary } from "@fullcalendar/core/internal";
 import { apiFetch } from "../api";
 import { useUser } from "../context/UserContext";
-import { useSocket } from "../context/SocketContext";
+import { useSocket } from "../context/useSocket";
 
 function AvailabilityPage() {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -608,30 +608,30 @@ function AvailabilityPage() {
     setIsToolTipOpen(true);
   };
 
-  // Show loading state while user or shifts are loading
   if (loading || rulesLoading) {
     return (
-      <div className="page-container dashboard-container">
-        <div style={{ textAlign: "center", padding: "50px" }}>
-          <p>Loading...</p>
-        </div>
+      <div className="page page-container dashboard-container">
+        <div className="loading-state">Loading…</div>
       </div>
     );
   }
 
-  // Optional: Handle case where user is not logged in
   if (!user) {
     return (
-      <div className="page-container dashboard-container">
-        <div style={{ textAlign: "center", padding: "50px" }}>
-          <p>Please log in to view availability.</p>
-        </div>
+      <div className="page page-container dashboard-container">
+        <div className="empty-state">Please log in to view availability.</div>
       </div>
     );
   }
 
   return (
-    <div className="page-container">
+    <div className="page page-container">
+      <div className="page-header swap-requests-header">
+        <div>
+          <h1 className="page-title">My Availability</h1>
+          <p className="page-subtitle">View and manage your availability.</p>
+        </div>
+      </div>
       {isModalOpen && (
         <AvailabilityEditor
           onCancel={() => {

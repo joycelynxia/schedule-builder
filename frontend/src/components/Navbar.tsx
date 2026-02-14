@@ -1,59 +1,17 @@
-// import "../styles/Navbar.css"
-
-// function Navbar() {
-//   return (
-//     <nav className="navbar">
-//       <div className="navbar-top">
-//         <a href="/schedule" className="logo">
-//           Schedulr
-//         </a>
-//       </div>
-//       <div className="navbar-middle">
-//         {/* <ul className="nav-links"> */}
-//           <a href="/schedule">Schedule</a>
-//           <a href="/availability">Availability</a>
-//           <a href="/team">Team</a>
-//         {/* </ul> */}
-//       </div>
-//       <div className="navbar-bottom">
-//         <a href="/account">My Account</a>
-//       </div>
-//     </nav>
-//   );
-// }
-
-// export default Navbar;
-
-import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import "../styles/Navbar.css";
+import { FaRegCalendarAlt } from "react-icons/fa";
+import { MdFreeCancellation } from "react-icons/md";
+import { IoSwapHorizontal } from "react-icons/io5";
+import { RiTeamFill } from "react-icons/ri";
+import { FaMoneyBillWave } from "react-icons/fa";
+import { FaRegUser } from "react-icons/fa";
 
 function Navbar() {
-  const [isExpanded, setIsExpanded] = useState(false);
   const linkClass = ({ isActive }: { isActive: boolean }) => (isActive ? "active" : "");
 
   return (
-    <>
-      {/* Hamburger button - only visible when collapsed */}
-      <button 
-        className={`sidebar-toggle ${isExpanded ? 'expanded' : ''}`}
-        onClick={() => setIsExpanded(!isExpanded)}
-        aria-label="Toggle sidebar"
-      >
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
-
-      {/* Overlay for mobile */}
-      {isExpanded && (
-        <div 
-          className="sidebar-overlay"
-          onClick={() => setIsExpanded(false)}
-        />
-      )}
-
-      <nav className={`navbar ${isExpanded ? 'expanded' : ''}`}>
+    <nav className="navbar">
         <div className="navbar-left">
           <a href="/schedule" className="logo">
             Schedulr
@@ -62,52 +20,44 @@ function Navbar() {
         <div className="navbar-center">
           <NavLink 
             to="/schedule" 
-            onClick={() => setIsExpanded(false)}
             className={linkClass}
           >
-            Schedule
+            <FaRegCalendarAlt /><span className="nav-label">Schedule</span>
           </NavLink>
           <NavLink 
             to="/availability" 
-            onClick={() => setIsExpanded(false)}
             className={linkClass}
           >
-            My Availability
+            <MdFreeCancellation /><span className="nav-label">My Availability</span>
           </NavLink>
-
           <NavLink 
             to="/swap-requests" 
-            onClick={() => setIsExpanded(false)}
             className={linkClass}
           >
-            Swap Requests
+            <IoSwapHorizontal /><span className="nav-label">Swap Requests</span>
           </NavLink>
           <NavLink 
             to="/available-shifts" 
-            onClick={() => setIsExpanded(false)}
             className={linkClass}
           >
-            Available Shifts
+            <FaMoneyBillWave /><span className="nav-label">Available Shifts</span>
           </NavLink>
           <NavLink 
             to="/team" 
-            onClick={() => setIsExpanded(false)}
             className={linkClass}
           >
-            Team
+            <RiTeamFill /><span className="nav-label">Team</span>
           </NavLink>
         </div>
         <div className="navbar-right">
           <NavLink 
             to="/account" 
-            onClick={() => setIsExpanded(false)}
             className={linkClass}
           >
-            My Account
+            <FaRegUser /><span className="nav-label">My Account</span>
           </NavLink>
         </div>
-      </nav>
-    </>
+    </nav>
   );
 }
 

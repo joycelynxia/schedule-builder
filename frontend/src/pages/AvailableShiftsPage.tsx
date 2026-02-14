@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
-import Navbar from "../components/Navbar";
 import { getAllSwapRequests, createCoverBid, listCoverBids } from "../api";
 import type { ShiftSwapRequest } from "../types/models";
 import { useUser } from "../context/UserContext";
-import { useSocket } from "../context/SocketContext";
+import { useSocket } from "../context/useSocket";
 import "../styles/AvailableShiftsPage.css";
 
 function AvailableShiftsPage() {
@@ -94,16 +93,17 @@ function AvailableShiftsPage() {
   };
 
   return (
-    <div className="available-shifts-page">
-      <Navbar />
-      <div className="available-shifts-content">
-        <h1>Available Shifts (Need Cover)</h1>
-        <p className="subtitle">These shifts need cover. Request to cover one and your manager can approve.</p>
+    <div className="page available-shifts-page">
+      <div className="page-header">
+        <h1 className="page-title">Available Shifts</h1>
+        <p className="page-subtitle">Request to cover a shift. Manager must approve.</p>
+      </div>
+      <div className="available-shifts-content content-card">
 
         {loading ? (
-          <div className="loading">Loading…</div>
+          <div className="loading-state">Loading…</div>
         ) : coverRequests.length === 0 ? (
-          <div className="empty">No shifts need cover right now.</div>
+          <div className="empty-state">No shifts need cover right now.</div>
         ) : (
           <ul className="cover-requests-list">
             {coverRequests.map((req) => {

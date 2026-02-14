@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useEffect, useState, type ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useUser } from './UserContext';
 
@@ -7,7 +7,7 @@ interface SocketContextType {
   connected: boolean;
 }
 
-const SocketContext = createContext<SocketContextType | undefined>(undefined);
+export const SocketContext = createContext<SocketContextType | undefined>(undefined);
 
 export function SocketProvider({ children }: { children: ReactNode }) {
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -26,7 +26,9 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
+    // Use same origin when API_BASE is empty (Vite proxy); otherwise use API_BASE
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+    const socketUrl = API_BASE || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173');
     const token = localStorage.getItem('token');
 
     if (!token) {
@@ -34,7 +36,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     }
 
     // Create socket connection with authentication
-    const newSocket = io(API_BASE, {
+    const newSocket = io(socketUrl, {
       auth: {
         token,
       },
@@ -71,13 +73,4 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       {children}
     </SocketContext.Provider>
   );
-}
-
-// Custom hook for easy access
-export function useSocket() {
-  const context = useContext(SocketContext);
-  if (!context) {
-    throw new Error('useSocket must be used within SocketProvider');
-  }
-  return context;
 }

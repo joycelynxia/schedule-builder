@@ -15,32 +15,36 @@
 }
 
 .main-content {
-  margin-left:20vw;
+  margin-left: 20vw;
   flex: 1;
+  min-width: 0;
   width: 100%;
   min-height: 100vh;
-  overflow: hidden;
+  overflow: auto;
+  box-sizing: border-box;
+  padding: clamp(1rem, 2.5vw, 2rem);
 }
 
-/* When sidebar is hidden (tablet and smaller), remove left margin */
+/* Narrow screen - icon-only navbar is 70px */
 @media (max-width: 1024px) {
   .main-content {
-    margin-left: 0;
+    margin-left: 70px;
+    padding: clamp(0.75rem, 2vw, 1.5rem);
   }
 }
 
-@media (max-width: 768px) {
-  .app-container {
-    flex-direction: column;
-  }
-  
+@media (max-width: 480px) {
   .main-content {
-    margin-top: 56px; /* Height of mobile navbar */
+    padding: 0.75rem;
   }
 }
+
 
 .login-register {
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: clamp(1rem, 3vw, 2rem);
+  width: 100%;
+  box-sizing: border-box;
 }

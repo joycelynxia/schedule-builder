@@ -193,7 +193,7 @@ function MyAccountPage() {
     >
       <path
         d="M11.3333 2.00001C11.5084 1.8249 11.7163 1.68601 11.9439 1.59124C12.1715 1.49648 12.4142 1.44775 12.6593 1.44775C12.9044 1.44775 13.1471 1.49648 13.3747 1.59124C13.6023 1.68601 13.8102 1.8249 13.9853 2.00001C14.1604 2.17512 14.2993 2.38302 14.3941 2.6106C14.4888 2.83818 14.5376 3.08088 14.5376 3.32601C14.5376 3.57114 14.4888 3.81384 14.3941 4.04142C14.2993 4.269 14.1604 4.4769 13.9853 4.65201L5.17667 13.4607L1.33334 14.6667L2.53934 10.8233L11.3333 2.00001Z"
-        stroke="#666"
+        stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -202,7 +202,7 @@ function MyAccountPage() {
   );
 
   if (loading) {
-    return <div className="my-account-page">Loading...</div>;
+    return <div className="page my-account-page"><div className="loading-state">Loading…</div></div>;
   }
 
   if (!user) {
@@ -210,9 +210,13 @@ function MyAccountPage() {
   }
 
   return (
-    <div className="my-account-page">
-      <h1 className="my-account-title">General</h1>
+    <div className="page my-account-page">
+      <div className="page-header">
+        <h1 className="page-title">My Account</h1>
+        <p className="page-subtitle">Manage your profile and account settings.</p>
+      </div>
 
+      <div className="content-card account-card">
       {/* Username Section */}
       <div className="account-section">
         <div className="account-field">
@@ -326,7 +330,7 @@ function MyAccountPage() {
           <button
             type="button"
             onClick={handleCancelEdit}
-            className="account-button cancel"
+            className="btn-secondary"
             disabled={!hasUnsavedChanges()}
           >
             Cancel
@@ -334,7 +338,7 @@ function MyAccountPage() {
           <button
             type="button"
             onClick={handleSave}
-            className="account-button save"
+            className="btn-primary"
             disabled={!hasUnsavedChanges()}
           >
             Save Changes
@@ -347,10 +351,11 @@ function MyAccountPage() {
         <button
           type="button"
           onClick={handleLogout}
-          className="account-button logout"
+          className="btn-primary btn-danger"
         >
           Log Out
         </button>
+      </div>
       </div>
     </div>
   );
