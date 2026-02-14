@@ -13,7 +13,7 @@ function LoginPage() {
     e.preventDefault();
 
     try {
-        const API_BASE = import.meta.env.VITE_API_BASE_URL;
+      const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
@@ -41,14 +41,16 @@ function LoginPage() {
   return (
     <div className="login-container">
       <form onSubmit={handleSubmit}>
-        <h2 className="header">login</h2>
-        {/* <div className="inputs-container"> */}
+        <div className="login-header">
+          <h1 className="login-logo">Schedulr</h1>
+          <p className="login-subtitle">Sign in to view and manage your schedule.</p>
+        </div>
         <label>
           <input
-            // type="email"
+            type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value.toLowerCase())}
-            placeholder="email"
+            placeholder="Email"
             required
           />
         </label>
@@ -56,21 +58,21 @@ function LoginPage() {
           <input
             type="password"
             value={password}
-            placeholder="password"
+            placeholder="Password"
             onChange={(e) => setPassword(e.target.value)}
             required
           />
         </label>
-        {/* </div> */}
         <button className="login-button" type="submit">
-          log in
+          Sign in
         </button>
-        <p
-          style={{ cursor: "pointer", marginTop: "8px" }}
+        <a
+          type="button"
+          className="auth-link"
           onClick={() => nav("/register")}
         >
-          need an account? register
-        </p>
+          Need an account? Register
+        </a>
       </form>
     </div>
   );

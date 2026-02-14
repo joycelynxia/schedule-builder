@@ -11,7 +11,7 @@ import {
 } from "../api";
 import type { ShiftSwapRequest, CoverBid } from "../types/models";
 import { useUser } from "../context/UserContext";
-import { useSocket } from "../context/SocketContext";
+import { useSocket } from "../context/useSocket";
 import "../styles/SwapRequestsPage.css";
 
 function SwapRequestsPage() {

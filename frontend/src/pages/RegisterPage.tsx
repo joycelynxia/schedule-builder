@@ -56,13 +56,16 @@ function RegisterPage() {
   return (
     <div className="login-container">
       <form onSubmit={handleSubmit}>
-        <h2 className="header">register</h2>
+        <div className="login-header">
+          <h2 className="login-logo">Schedulr</h2>
+          <p className="login-subtitle">Join to manage shifts with your team.</p>
+        </div>
 
         <label>
           <input
             value={userName}
             onChange={(e) => setUserName(e.target.value)}
-            placeholder="username"
+            placeholder="Username"
             required
           />
         </label>
@@ -72,7 +75,7 @@ function RegisterPage() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value.toLowerCase())}
-            placeholder="email"
+            placeholder="Email"
             required
           />
         </label>
@@ -81,7 +84,7 @@ function RegisterPage() {
           <input
             type="password"
             value={password}
-            placeholder="password"
+            placeholder="Password"
             onChange={(e) => setPassword(e.target.value)}
             required
           />
@@ -91,41 +94,49 @@ function RegisterPage() {
           <input
             type="password"
             value={confirm}
-            placeholder="confirm password"
+            placeholder="Confirm password"
             onChange={(e) => setConfirm(e.target.value)}
             required
           />
         </label>
 
-        <div className="company-setup" style={{ display: "flex" }}>
-          <button type="button" onClick={() => setIsNewCompany(true)} style={isNewCompany ? {} : {background:"gray"}}>
-            Create New
+        <div className="company-setup">
+          <button
+            type="button"
+            className={isNewCompany ? "selected" : ""}
+            onClick={() => setIsNewCompany(true)}
+          >
+            Create new company
           </button>
-          <button type="button" onClick={() => setIsNewCompany(false)} style={isNewCompany ? {background:"gray"} : {}}>
-            Join Existing
+          <button
+            type="button"
+            className={!isNewCompany ? "selected" : ""}
+            onClick={() => setIsNewCompany(false)}
+          >
+            Join existing
           </button>
         </div>
 
         <label>
           <input
-            type="companyStr"
             value={companyStr}
-            placeholder={isNewCompany ? "company name" : "company invite code"}
+            placeholder={isNewCompany ? "Company name" : "Invite code"}
             onChange={(e) => setCompanyStr(e.target.value)}
             required
           />
         </label>
 
         <button className="login-button" type="submit">
-          create account
+          Create account
         </button>
 
-        <p
-          style={{ cursor: "pointer", marginTop: "8px" }}
+        <a
+          type="button"
+          className="auth-link"
           onClick={() => nav("/")}
         >
-          already have an account? login
-        </p>
+          Already have an account? Sign in
+        </a>
       </form>
     </div>
   );
