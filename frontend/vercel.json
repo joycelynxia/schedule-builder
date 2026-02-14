@@ -11,7 +11,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://schedulr-twoi.onrender.com/api/:path*"
+      "destination": "https://schedule-builder-production.up.railway.app/api/:path*"
     },
     {
       "source": "/(.*)",

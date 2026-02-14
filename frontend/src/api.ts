@@ -1,4 +1,3 @@
-// export const API_URL = "https://schedulr-twoi.onrender.com"
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export const apiFetch = (url: string, options: RequestInit = {}) => {
