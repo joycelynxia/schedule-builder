@@ -7,6 +7,7 @@ import { useUser } from "../context/UserContext";
 
 interface Props {
   draftShifts: Shift[];
+  publishedShifts: Shift[];
   onAddShift: (shift: Shift) => void;
   onUpdateShift: (shift: Shift) => void;
   onDeleteShift: (shiftId: string) => void;
@@ -32,6 +33,8 @@ interface UserWithAvailability {
 type ShiftStatus = "DRAFT" | "PUBLISHED";
 
 function WeeklyShiftEditor({
+  draftShifts,
+  publishedShifts,
   onAddShift,
   onUpdateShift,
   onDeleteShift,
@@ -53,7 +56,28 @@ function WeeklyShiftEditor({
   const [timeError, setTimeError] = useState<string>("");
   const {user} = useUser();
 
-  // Check if a user is available for a given date and time range
+  // checks if user is alread scheduled - mark them unavailable
+  const userHasShiftOnDate = (userId: string, shiftDate: string): boolean => {
+    const allShifts = [...draftShifts, ...publishedShifts];
+    
+    // Check if user has any shift on this date (excluding the shift being edited)
+    return allShifts.some((shift) => {
+      // if editing shift, skip it
+      if (editingShift && shift.id === editingShift.id) {
+        return false;
+      }
+      
+      // checks if shift belongs to user and is on the same date
+      if (shift.userId !== userId) {
+        return false;
+      }
+      
+      const shiftDateStr = shift.start.split("T")[0];
+      return shiftDateStr === shiftDate;
+    });
+  };
+
+  // Check if a user is available for a given date and time range based on their unavailability rules
   // Approach: Check if shift date falls between rule dates, matches day of week (for weekly), and time overlaps
   const checkUserAvailability = (
     rules: UnavailabilityRule[],
@@ -114,7 +138,7 @@ function WeeklyShiftEditor({
         }
       }
 
-      // Step 3: Check if time matches (overlaps)
+      // Step 3: Check if time overlaps
       // If all-day, user is unavailable for entire day
       if (rule.allDay || !rule.timeRange) {
         return false; // Unavailable - all day rule applies
@@ -155,12 +179,20 @@ function WeeklyShiftEditor({
   useEffect(() => {
     if (date && startTime && endTime) {
       const optionsWithAvailability: OptionType[] = users.map((user) => {
-        const isAvailable = checkUserAvailability(
+        // Check unavailability rules
+        const availableByRules = checkUserAvailability(
           user.unavailabilityRules,
           date,
           startTime,
           endTime
         );
+        
+        // Check if user already has a shift on this date (only when creating, not editing)
+        const hasExistingShift = !editingShift && userHasShiftOnDate(user.id, date);
+        
+        // User is available only if both conditions are met
+        const isAvailable = availableByRules && !hasExistingShift;
+        
         return {
           value: user.id,
           label: user.userName,
@@ -177,16 +209,28 @@ function WeeklyShiftEditor({
 
       setEmployeeOptions(sorted);
     } else if (users.length > 0) {
-      // If no date/time, just show all users
+      // If no date/time, check only for existing shifts on the date
       setEmployeeOptions(
-        users.map((u) => ({
-          value: u.id,
-          label: u.userName,
-          isAvailable: true,
-        }))
+        users
+          .map((user) => {
+            // Check if user already has a shift on this date (only when creating, not editing)
+            const hasExistingShift = !editingShift && date && userHasShiftOnDate(user.id, date);
+            
+            return {
+              value: user.id,
+              label: user.userName,
+              isAvailable: !hasExistingShift,
+            };
+          })
+          .sort((a, b) => {
+            // Sort: available first, then unavailable
+            if (a.isAvailable && !b.isAvailable) return -1;
+            if (!a.isAvailable && b.isAvailable) return 1;
+            return 0;
+          })
       );
     }
-  }, [date, startTime, endTime, users]);
+  }, [date, startTime, endTime, users, draftShifts, publishedShifts, editingShift]);
 
   // Track previous editingShift ID to detect when it changes
   const prevEditingShiftIdRef = useRef<string | null>(null);

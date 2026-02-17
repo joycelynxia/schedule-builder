@@ -363,8 +363,16 @@ function SchedulePage() {
     
     // Extract date and times
     const dateStr = start.toISOString().split("T")[0];
-    const startTime = start.toTimeString().slice(0, 5); // HH:MM format
-    const endTime = end.toTimeString().slice(0, 5); // HH:MM format
+    
+    // Format time as HH:MM using getHours/getMinutes (same approach as WeeklyShiftEditor)
+    const formatTime = (date: Date) => {
+      const hours = date.getHours().toString().padStart(2, "0");
+      const minutes = date.getMinutes().toString().padStart(2, "0");
+      return `${hours}:${minutes}`;
+    };
+    
+    const startTime = formatTime(start);
+    const endTime = formatTime(end);
 
     setSelectedDate(dateStr);
     setSelectedStartTime(startTime);
@@ -410,16 +418,44 @@ function SchedulePage() {
 
   return (
     <div className="page page-container dashboard-container">
-      <div className="page-header swap-requests-header">
-        <div>
-          <h1 className="page-title">Schedule</h1>
-        </div>
-      </div>
       <div className="schedule-content">
+        <div className="schedule-header-row">
+          <h1 className="page-title schedule-title">Schedule</h1>
+          <div className="schedule-toolbar">
+            <div className="shift-view-toggle" role="tablist" aria-label="Shift view">
+              <span className={`shift-view-option ${shiftView === "all" ? "active" : ""}`}>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={shiftView === "all"}
+                  onClick={() => setShiftView("all")}
+                >
+                  All shifts
+                </button>
+              </span>
+              <span className={`shift-view-option ${shiftView === "mine" ? "active" : ""}`}>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={shiftView === "mine"}
+                  onClick={() => setShiftView("mine")}
+                >
+                  My shifts
+                </button>
+              </span>
+            </div>
+            {user?.isManager && draftShifts.length > 0 && (
+              <button onClick={handlePublishClick} className="bulk-edit-btn">
+                Bulk Edit ({draftShifts.length} draft{draftShifts.length !== 1 ? "s" : ""})
+              </button>
+            )}
+          </div>
+        </div>
         <div className="modal">
           {isModalOpen && (
             <WeeklyShiftEditor
               draftShifts={draftShifts}
+              publishedShifts={publishedShifts}
               onAddShift={(shift) => {
                 addShift(shift);
                 setSelectedStartTime(null);
@@ -444,36 +480,7 @@ function SchedulePage() {
             />
           )}
         </div>
-        <div className="schedule-toolbar">
-          <div className="shift-view-toggle" role="tablist" aria-label="Shift view">
-            <span className={`shift-view-option ${shiftView === "all" ? "active" : ""}`}>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={shiftView === "all"}
-                onClick={() => setShiftView("all")}
-              >
-                All shifts
-              </button>
-            </span>
-            <span className={`shift-view-option ${shiftView === "mine" ? "active" : ""}`}>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={shiftView === "mine"}
-                onClick={() => setShiftView("mine")}
-              >
-                My shifts
-              </button>
-            </span>
-          </div>
-          {user?.isManager && draftShifts.length > 0 && (
-            <button onClick={handlePublishClick} className="bulk-edit-btn">
-              Bulk Edit ({draftShifts.length} draft{draftShifts.length !== 1 ? "s" : ""})
-            </button>
-          )}
-        </div>
-        
+
         {/* Publish Preview Modal */}
         {isPublishModalOpen && (
           <div className="overlay publish-modal-overlay">

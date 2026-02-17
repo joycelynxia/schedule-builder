@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { apiFetch, createSwapRequest } from "../api";
-import type { User, Shift } from "../types/models";
+import type { Shift } from "../types/models";
 import "../styles/SwapRequestDialog.css";
 import { useUser } from "../context/UserContext";
 
@@ -12,32 +12,63 @@ interface Props {
 
 function SwapRequestDialog({ shift, onClose, onSuccess }: Props) {
   const [requestType, setRequestType] = useState<"cover" | "swap">("cover");
-  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [selectedShiftId, setSelectedShiftId] = useState<string>("");
   const [reason, setReason] = useState<string>("");
-  const [users, setUsers] = useState<User[]>([]);
+  const [availableShifts, setAvailableShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");
   const { user: currentUser } = useUser();
 
-  // Fetch team members
+  // Fetch published shifts for swap options
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || requestType !== "swap") return;
 
-    const fetchUsers = async () => {
+    const fetchShifts = async () => {
       try {
-        const response = await apiFetch(`/api/users/${currentUser.companyId}`);
-        const usersData: User[] = await response.json();
-        // Filter out current user from swap options
-        const otherUsers = usersData.filter((u) => u.id !== currentUser.id);
-        setUsers(otherUsers);
+        const response = await apiFetch("/api/shifts");
+        const allShifts: Shift[] = await response.json();
+        
+        const now = new Date();
+        const currentShiftDate = shift.start.split("T")[0];
+        const currentShiftStart = shift.start;
+        const currentShiftEnd = shift.end;
+        
+        // Filter shifts:
+        // 1. Must be published
+        // 2. Must not have passed yet
+        // 3. Must not belong to the current user (can't swap with yourself)
+        // 4. Must not have the same date and time as current shift
+        const filtered = allShifts.filter((s) => {
+          // Must be published
+          if (!s.isPublished) return false;
+          
+          // Must not have passed yet
+          const shiftEnd = new Date(s.end);
+          if (shiftEnd < now) return false;
+          
+          // Must not belong to current user (can't swap with yourself)
+          if (s.userId === currentUser.id) return false;
+          
+          // Must not have the same date and time as current shift
+          const shiftDate = s.start.split("T")[0];
+          if (shiftDate === currentShiftDate && 
+              s.start === currentShiftStart && 
+              s.end === currentShiftEnd) {
+            return false;
+          }
+          
+          return true;
+        });
+        
+        setAvailableShifts(filtered);
       } catch (err) {
-        console.error("Error fetching users:", err);
-        setError("Failed to load team members");
+        console.error("Error fetching shifts:", err);
+        setError("Failed to load available shifts");
       }
     };
 
-    fetchUsers();
-  }, [currentUser]);
+    fetchShifts();
+  }, [currentUser, requestType, shift]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,15 +76,27 @@ function SwapRequestDialog({ shift, onClose, onSuccess }: Props) {
     setLoading(true);
 
     try {
-      if (requestType === "swap" && !selectedUserId) {
-        setError("Please select a team member to swap with");
+      if (requestType === "swap" && !selectedShiftId) {
+        setError("Please select a shift to swap with");
         setLoading(false);
         return;
       }
 
+      // For swap requests, get the userId from the selected shift
+      let requestedUserId: string | undefined;
+      if (requestType === "swap" && selectedShiftId) {
+        const selectedShift = availableShifts.find((s) => s.id === selectedShiftId);
+        if (!selectedShift) {
+          setError("Selected shift not found");
+          setLoading(false);
+          return;
+        }
+        requestedUserId = selectedShift.userId;
+      }
+
       await createSwapRequest(
         shift.id,
-        requestType === "swap" ? selectedUserId : undefined,
+        requestedUserId,
         reason || undefined
       );
 
@@ -83,6 +126,12 @@ function SwapRequestDialog({ shift, onClose, onSuccess }: Props) {
       minute: "2-digit",
       hour12: true,
     });
+  };
+
+  const formatShiftDisplay = (shift: Shift) => {
+    const date = formatShiftDate(shift.start);
+    const time = `${formatShiftTime(shift.start)} - ${formatShiftTime(shift.end)}`;
+    return `${shift.title || "Untitled"} - ${date} (${time})`;
   };
 
   return (
@@ -117,7 +166,7 @@ function SwapRequestDialog({ shift, onClose, onSuccess }: Props) {
                 checked={requestType === "cover"}
                 onChange={() => {
                   setRequestType("cover");
-                  setSelectedUserId("");
+                  setSelectedShiftId("");
                 }}
               />
               <span>Request Cover (anyone can cover)</span>
@@ -135,17 +184,17 @@ function SwapRequestDialog({ shift, onClose, onSuccess }: Props) {
 
           {requestType === "swap" && (
             <div className="form-group">
-              <label htmlFor="user-select">Select Team Member:</label>
+              <label htmlFor="shift-select">Select Shift to Swap With:</label>
               <select
-                id="user-select"
-                value={selectedUserId}
-                onChange={(e) => setSelectedUserId(e.target.value)}
+                id="shift-select"
+                value={selectedShiftId}
+                onChange={(e) => setSelectedShiftId(e.target.value)}
                 required
               >
-                <option value="">-- Select a team member --</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.userName}
+                <option value="">-- Select a shift --</option>
+                {availableShifts.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {formatShiftDisplay(s)}
                   </option>
                 ))}
               </select>
