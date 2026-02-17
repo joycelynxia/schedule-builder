@@ -84,7 +84,15 @@ function AvailabilityPage() {
       // and not already in the list (avoid duplicates from own actions)
       if (rule.userId === user.id || user.isManager) {
         setUnavailabilityRules((prev) => {
-          if (prev.some((r) => r.id === rule.id)) return prev;
+          // Check for duplicates by ID - rules from backend should always have IDs
+          if (rule.id && prev.some((r) => r.id === rule.id)) {
+            return prev;
+          }
+          // If no ID, skip adding to list
+          if (!rule.id) {
+            console.warn("Received rule without ID, skipping:", rule);
+            return prev;
+          }
           return [...prev, rule];
         });
       }
@@ -321,8 +329,6 @@ function AvailabilityPage() {
         throw new Error(error.error || "Failed to save unavailability rule");
       }
 
-      const savedRule = await response.json();
-      setUnavailabilityRules((prev) => [...prev, savedRule]);
       setIsModalOpen(false);
     } catch (error: any) {
       console.error("Error saving unavailability rule:", error);
@@ -355,14 +361,6 @@ function AvailabilityPage() {
         const error = await response.json();
         throw new Error(error.error || "Failed to save unavailability rule");
       }
-
-      const savedRule = await response.json();
-
-      // Update state: remove deleted rules and add new one
-      setUnavailabilityRules((prev) => [
-        ...prev.filter((r) => !conflictingRules.some((cr) => cr.id === r.id)),
-        savedRule,
-      ]);
 
       // Close dialogs and reset state
       setShowConflictDialog(false);
@@ -397,10 +395,6 @@ function AvailabilityPage() {
         throw new Error(error.error || "Failed to update unavailability rule");
       }
 
-      const updatedRule = await response.json();
-      setUnavailabilityRules((prev) =>
-        prev.map((r) => (r.id === updatedRule.id ? updatedRule : r)),
-      );
       setIsModalOpen(false);
       setEditingRule(null);
     } catch (error: any) {
@@ -433,9 +427,6 @@ function AvailabilityPage() {
         throw new Error(error.error || "Failed to delete unavailability rule");
       }
 
-      setUnavailabilityRules((prev) =>
-        prev.filter((r) => r.id !== editingRule.id),
-      );
       setIsModalOpen(false);
       setEditingRule(null);
     } catch (error: any) {
