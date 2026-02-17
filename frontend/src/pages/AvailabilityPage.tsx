@@ -5,7 +5,7 @@ import interactionPlugin from "@fullcalendar/interaction"; // needed for dateCli
 import "../styles/Calendar.css";
 import AvailabilityEditor from "../components/AvailabilityEditor";
 import ConflictDialog from "../components/ConflictDialog";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import type { UnavailabilityRule, DayOfWeek } from "../types/models";
 import type {
   EventHoveringArg,
@@ -48,6 +48,9 @@ function AvailabilityPage() {
 
   const { user, loading } = useUser();
   const { socket } = useSocket();
+  
+  // Track recently processed rule IDs to prevent duplicates
+  const processedRuleIdsRef = useRef<Set<string>>(new Set());
 
   // Fetch current user and existing rules on mount
   useEffect(() => {
@@ -65,6 +68,10 @@ function AvailabilityPage() {
         );
         const rules: UnavailabilityRule[] = await response.json();
         setUnavailabilityRules(rules);
+        // Initialize processed IDs with existing rules to prevent duplicates
+        processedRuleIdsRef.current = new Set(
+          rules.map(r => r.id).filter((id): id is string => Boolean(id))
+        );
       } catch (err) {
         console.error("Error fetching rules");
       } finally {
@@ -83,16 +90,36 @@ function AvailabilityPage() {
       // Only add if it belongs to the current user (or user is manager)
       // and not already in the list (avoid duplicates from own actions)
       if (rule.userId === user.id || user.isManager) {
+        // If no ID, skip adding to list
+        if (!rule.id) {
+          console.warn("Received rule without ID, skipping:", rule);
+          return;
+        }
+        
+        const ruleId = rule.id; // Store ID for type safety
+        
+        // Check if we've already processed this rule ID
+        if (processedRuleIdsRef.current.has(ruleId)) {
+          console.log("Rule already processed, skipping:", ruleId);
+          return;
+        }
+        
         setUnavailabilityRules((prev) => {
-          // Check for duplicates by ID - rules from backend should always have IDs
-          if (rule.id && prev.some((r) => r.id === rule.id)) {
+          // Double-check for duplicates in state
+          if (prev.some((r) => r.id === ruleId)) {
+            console.log("Duplicate rule in state, skipping:", ruleId);
             return prev;
           }
-          // If no ID, skip adding to list
-          if (!rule.id) {
-            console.warn("Received rule without ID, skipping:", rule);
-            return prev;
-          }
+          
+          // Mark as processed
+          processedRuleIdsRef.current.add(ruleId);
+          
+          // Clean up old IDs after 5 seconds to prevent memory leak
+          setTimeout(() => {
+            processedRuleIdsRef.current.delete(ruleId);
+          }, 5000);
+          
+          console.log("Adding new rule via socket:", ruleId);
           return [...prev, rule];
         });
       }
@@ -112,6 +139,12 @@ function AvailabilityPage() {
       setUnavailabilityRules((prev) => prev.filter((r) => r.id !== data.id));
     };
 
+    // Remove any existing listeners first to prevent duplicates
+    socket.off("unavailabilityRule:created", handleRuleCreated);
+    socket.off("unavailabilityRule:updated", handleRuleUpdated);
+    socket.off("unavailabilityRule:deleted", handleRuleDeleted);
+
+    // Register new listeners
     socket.on("unavailabilityRule:created", handleRuleCreated);
     socket.on("unavailabilityRule:updated", handleRuleUpdated);
     socket.on("unavailabilityRule:deleted", handleRuleDeleted);
