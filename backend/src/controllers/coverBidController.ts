@@ -31,11 +31,13 @@ export const createCoverBid = async (req: AuthRequest, res: Response) => {
     if (coverRequest.shift.user.companyId !== user.companyId) return res.status(403).json({ error: "Forbidden" });
     if (coverRequest.requesterId === user.id) return res.status(400).json({ error: "You cannot cover your own shift" });
 
+    // check if user has already bid for this shift
     const existing = await prisma.coverBid.findFirst({
       where: { coverRequestId, bidderId: user.id, status: $Enums.CoverBidStatus.PENDING },
     });
     if (existing) return res.status(400).json({ error: "You already have a pending bid for this shift" });
 
+    // create bid
     const bid = await prisma.coverBid.create({
       data: { coverRequestId, bidderId: user.id, status: $Enums.CoverBidStatus.PENDING },
       include: {
@@ -49,11 +51,13 @@ export const createCoverBid = async (req: AuthRequest, res: Response) => {
       },
     });
 
+    // emit event to frontend - socket live update
     const io = getIO();
 
     // Manager requesting to cover = auto-approve: process immediately (no separate approval step)
     if (user.isManager) {
       await prisma.$transaction(async (tx) => {
+        // reject all other pending bids
         await tx.coverBid.updateMany({
           where: {
             coverRequestId: bid.coverRequestId,
@@ -62,17 +66,21 @@ export const createCoverBid = async (req: AuthRequest, res: Response) => {
           },
           data: { status: $Enums.CoverBidStatus.REJECTED },
         });
+        // approve this bid
         await tx.coverBid.update({ where: { id: bid.id }, data: { status: $Enums.CoverBidStatus.APPROVED } });
+        // approve the swap request
         await tx.shiftSwapRequest.update({
           where: { id: bid.coverRequestId },
           data: { status: $Enums.SwapRequestStatus.APPROVED },
         });
+        // reassign shift to bidder 
         await tx.scheduledShift.update({
           where: { id: bid.coverRequest.shiftId },
           data: { userId: bid.bidderId, title: bid.bidder.userName },
         });
       });
 
+      // get updated bid
       const updated = await prisma.coverBid.findUnique({
         where: { id: bid.id },
         include: {
@@ -85,6 +93,7 @@ export const createCoverBid = async (req: AuthRequest, res: Response) => {
           bidder: { select: { id: true, userName: true, email: true } },
         },
       });
+      // emit event to frontend - socket live update
       if (updated) {
         io.to(`company:${user.companyId}`).emit("coverBid:approved", updated);
         const shift = await prisma.scheduledShift.findUnique({
@@ -107,6 +116,7 @@ export const createCoverBid = async (req: AuthRequest, res: Response) => {
           });
           const reqUser = updated.coverRequest.requester;
           const bidder = updated.bidder;
+          // wip: send email notifications
           if (reqUser?.userName && reqUser?.email && bidder?.userName && bidder?.email) {
             sendCoverSwapApprovedEmail({
               userName: reqUser.userName,
