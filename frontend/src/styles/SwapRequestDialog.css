@@ -64,35 +64,39 @@
 
 .request-type-selector {
   display: flex;
-  flex-direction: column;
+  /* flex-direction: column; */
   gap: 0.75rem;
   margin-bottom: 1.5rem;
 }
 
-.request-type-selector label {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.5rem;
-  cursor: pointer;
-  padding: 0.75rem;
+.request-type-button {
+  width: 100%;
+  padding: 0.75rem 1rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
+  background-color: var(--surface);
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 500;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
   transition: var(--transition);
 }
 
-.request-type-selector label:hover {
+.request-type-button:hover {
   background-color: rgba(124, 92, 240, 0.05);
   border-color: var(--primary-color);
 }
 
-.request-type-selector input[type="radio"] {
-  cursor: pointer;
+.request-type-button.selected {
+  background-color: rgba(124, 92, 240, 0.1);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
 }
 
-.request-type-selector span {
-  color: var(--text-primary);
-  font-weight: 500;
+.request-type-button.selected:hover {
+  background-color: rgba(124, 92, 240, 0.15);
 }
 
 .form-group {

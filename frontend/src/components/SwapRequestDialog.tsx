@@ -159,27 +159,23 @@ function SwapRequestDialog({ shift, onClose, onSuccess }: Props) {
 
         <form onSubmit={handleSubmit}>
           <div className="request-type-selector">
-            <label>
-              <input
-                type="radio"
-                value="cover"
-                checked={requestType === "cover"}
-                onChange={() => {
-                  setRequestType("cover");
-                  setSelectedShiftId("");
-                }}
-              />
-              <span>Request Cover (anyone can cover)</span>
-            </label>
-            <label>
-              <input
-                type="radio"
-                value="swap"
-                checked={requestType === "swap"}
-                onChange={() => setRequestType("swap")}
-              />
-              <span>Request Swap (specific person)</span>
-            </label>
+            <button
+              type="button"
+              className={`request-type-button ${requestType === "cover" ? "selected" : ""}`}
+              onClick={() => {
+                setRequestType("cover");
+                setSelectedShiftId("");
+              }}
+            >
+              Request Cover
+            </button>
+            <button
+              type="button"
+              className={`request-type-button ${requestType === "swap" ? "selected" : ""}`}
+              onClick={() => setRequestType("swap")}
+            >
+              Request Swap
+            </button>
           </div>
 
           {requestType === "swap" && (
