@@ -16,8 +16,31 @@ import coverBidRoutes from "./routes/coverBidRoutes";
 
 const app = express();
 
-// ---- Middleware ----
-app.use(cors()); // allow cross-origin requests (adjust for production)
+// Allowed frontend origins
+const defaultOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:5173",
+  "https://schedulr-tool.vercel.app",
+];
+const extraOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(",").map((o) => o.trim()).filter(Boolean)
+  : [];
+const allowedOrigins = [...defaultOrigins, ...extraOrigins];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. Postman, server-to-server)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      callback(null, false);
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(express.json()); // parse JSON bodies
 
 // ---- Routes ----
